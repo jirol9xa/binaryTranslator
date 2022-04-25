@@ -11,6 +11,7 @@
     {
         char *buffer;
         long  length;
+        long  capacity;
         FILE *asm_version;
     };
 

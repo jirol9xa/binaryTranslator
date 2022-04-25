@@ -5,17 +5,27 @@
      5 00000000 B803000000              	mov     rax, 3
      6 00000005 BB0A000000                      mov     rbx, 10
      7                                  Movs:
-     8 0000000A B803000000                      mov     rax, 3
+     8 0000000A 4889D8                          mov     rax, rbx
      9                                  
     10                                  pushes:
-    11 0000000F 6A04                            push    4
-    12 00000011 51                              push    rcx
-    13 00000012 58                              pop     rax
-    14 00000013 5B                              pop     rbx
+    11 0000000D 4C8B28                          mov     r13, [rax]
+    12 00000010 4C8B2C2523010000                mov     r13, [0x123]
+    13 00000018 4C8B2C2534120000                mov     r13, [0x1234]
+    14 00000020 4C8B2C2556341200                mov     r13, [0x123456]
     15                                  
-    16 00000014 EBF4                            jmp     Movs
-    17 00000016 EBF7                            jmp     pushes
-    18                                  
-    19 00000018 90                              nop
-    20                                  
-    21 00000019 C3                              ret
+    16 00000028 4155                            push    r13
+    17                                  
+    18 0000002A 50                              push    rax
+    19 0000002B 53                              push    rbx
+    20 0000002C 51                              push    rcx
+    21 0000002D 52                              push    rdx
+    22                                  
+    23 0000002E 58                              pop     rax
+    24 0000002F 5B                              pop     rbx
+    25                                  
+    26 00000030 EBD8                            jmp     Movs
+    27 00000032 EBD9                            jmp     pushes
+    28                                  
+    29 00000034 90                              nop
+    30                                  
+    31 00000035 C3                              ret
