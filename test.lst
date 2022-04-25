@@ -1,0 +1,21 @@
+     1                                  section .text
+     2                                  global	_start
+     3                                  
+     4                                  _start:
+     5 00000000 B803000000              	mov     rax, 3
+     6 00000005 BB0A000000                      mov     rbx, 10
+     7                                  Movs:
+     8 0000000A B803000000                      mov     rax, 3
+     9                                  
+    10                                  pushes:
+    11 0000000F 6A04                            push    4
+    12 00000011 51                              push    rcx
+    13 00000012 58                              pop     rax
+    14 00000013 5B                              pop     rbx
+    15                                  
+    16 00000014 EBF4                            jmp     Movs
+    17 00000016 EBF7                            jmp     pushes
+    18                                  
+    19 00000018 90                              nop
+    20                                  
+    21 00000019 C3                              ret
