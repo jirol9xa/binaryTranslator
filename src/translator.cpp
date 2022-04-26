@@ -14,20 +14,105 @@ const int IS_RAM = 1 << 6;  // if using ram
     dst->buffer[dst->length++] = 0x41;  \
 }
 
-#define MOV_R13_REG(first_num)                                            \
-{                                                                           \
-    dst->buffer[dst->length++] = first_num;  /* this is mov r13, [r*x] */   \
-    dst->buffer[dst->length++] = 0x8B;  /* this is mov r13, [r*x] */        \
-    dst->buffer[dst->length++] = 0x4C;  /* this is mov r13, [r*x] */        \
+#define POP_R13                         \
+{                                       \
+    dst->buffer[dst->length++] = 0x5D;  \
+    dst->buffer[dst->length++] = 0x41;  \
 }
 
-#define MOV_R13_RAX MOV_R13_REG(0x28);
-#define MOV_R13_RBX MOV_R13_REG(0x2B);
-#define MOV_R13_RCX MOV_R13_REG(0x29);
-#define MOV_R13_RDX MOV_R13_REG(0x2A);
+#define POP_R15                         \
+{                                       \
+    dst->buffer[dst->length++] = 0x5F;  \
+    dst->buffer[dst->length++] = 0x41;  \
+}
+
+#define PUSH_R15                        \
+{                                       \
+    dst->buffer[dst->length++] = 0x57;  \
+    dst->buffer[dst->length++] = 0x41;  \
+}
+
+#define MOV_R13_R_X_RAM(first_num)                                          \
+{                                                                           \
+    dst->buffer[dst->length++] = first_num;  /* this is mov r13, [r*x] */   \
+    dst->buffer[dst->length++] = 0x8B;                                      \
+    dst->buffer[dst->length++] = 0x4C;                                      \
+}
+
+// this is macroses for mov r13, [r*x]
+#define MOV_R13_RAX_RAM MOV_R13_R_X_RAM(0x28);
+#define MOV_R13_RBX_RAM MOV_R13_R_X_RAM(0x2B);
+#define MOV_R13_RCX_RAM MOV_R13_R_X_RAM(0x29);
+#define MOV_R13_RDX_RAM MOV_R13_R_X_RAM(0x2A);
+
+#define MOV_R13_R_X(first_num)                                              \
+{                                                                           \
+    dst->buffer[dst->length++] = first_num;  /* this is mov r13, r*x */     \
+    dst->buffer[dst->length++] = 0x89;                                      \
+    dst->buffer[dst->length++] = 0x49;                                      \
+}
+
+#define MOV_R13_RAX MOV_R13_R_X(0xC5)
+#define MOV_R13_RBX MOV_R13_R_X(0xDD)
+#define MOV_R13_RCX MOV_R13_R_X(0xCD)
+#define MOV_R13_RDX MOV_R13_R_X(0xD5)
+
 
 #define FILL1BYTE(number)   dst->buffer[dst->length++] = number;
 
+// this is macro for mov r13, [r*x]
+#define MOV_R13_REG_RAM(reg_num)\
+{                               \
+    switch (reg_num)            \
+    {                           \
+    case 0: /*PUSH[rax]*/       \
+        MOV_R13_RAX_RAM;        \
+                                \
+        break;                  \
+    case 1:                     \
+        MOV_R13_RBX_RAM;        \
+                                \
+        break;                  \
+    case 2:                     \
+        MOV_R13_RCX_RAM;        \
+                                \
+        break;                  \
+    case 3:                     \
+        MOV_R13_RDX_RAM;        \
+                                \
+        break;                  \
+    default:                    \
+        fprintf(stderr, "ERROR OF CHOOSING REG in [%s:%d]\n", __func__, __LINE__); \
+        exit(1);                \
+    }                           \
+}
+
+// this is macro for mov r13, r*x
+#define MOV_R13_REG(reg_num)\
+{                               \
+    switch (reg_num)            \
+    {                           \
+    case 0:                     \
+        MOV_R13_RAX;            \
+                                \
+        break;                  \
+    case 1:                     \
+        MOV_R13_RBX;            \
+                                \
+        break;                  \
+    case 2:                     \
+        MOV_R13_RCX;            \
+                                \
+        break;                  \
+    case 3:                     \
+        MOV_R13_RDX;            \
+                                \
+        break;                  \
+    default:                    \
+        fprintf(stderr, "ERROR OF CHOOSING REG in [%s:%d]\n", __func__, __LINE__); \
+        exit(1);                \
+    }                           \
+}
 // int SourceCtor(Sourse_code *src)
 // {
 //     is_debug(if (!src)  ERR(INVALID_PTR))
@@ -105,7 +190,7 @@ int makePush(char *src, Bin_code *dst)
         switch (src[curr_symb++])
         {
             case (2 | IS_REG):          // for PUSH[reg + num]
-                makePushRAMRegNum(src + curr_symb, dst);
+                makePushRAMRegNum(src + curr_symb, dst, 0);
                 curr_symb += 2 * sizeof(int) + sizeof(char);
                 break;
 
@@ -118,6 +203,8 @@ int makePush(char *src, Bin_code *dst)
                 break;
 
             case (2 | IS_RAM):          // for PUSH[num + reg]
+                makePushRAMRegNum(src + curr_symb, dst, 1);
+                curr_symb += 2 * sizeof(int) + sizeof(char);
                 break;
 
             case 2:                     // for PUSH[num + num]
@@ -161,18 +248,9 @@ int makePush(char *src, Bin_code *dst)
         int arg    = *((int *) (src + curr_symb));
         curr_symb += sizeof(int);
 
-        #define CREATE2DIGITS(number)               \
-        dst->buffer[dst->length++] = arg / number;  \
-        arg %= number;  
+        writeNumber(dst, arg);
 
-        CREATE2DIGITS(0x100000);
-        CREATE2DIGITS(0x1000);
-        CREATE2DIGITS(0x10);
-        CREATE2DIGITS(0x1);
-
-        dst->buffer[dst->length++] = 0x68;
-        
-        #undef CREATE2DIGITS
+        FILL1BYTE(0x68);        
     }
 
     return curr_symb;
@@ -185,32 +263,8 @@ int makePushRAMReg(char *src, Bin_code *dst)
 
     int arg   = *((int *) src);
 
-    switch (arg)
-    {
-    case 0: //PUSH[rax]
-        MOV_R13_RAX;
-        PUSH_R13;
-
-        break;
-    case 1:
-        MOV_R13_RBX;
-        PUSH_R13;
-
-        break;
-    case 2:
-        MOV_R13_RCX;
-        PUSH_R13;
-
-        break;
-    case 3:
-        MOV_R13_RDX;
-        PUSH_R13;
-
-        break;
-    default:
-        fprintf(stderr, "ERROR OF CHOOSING REG in [%s:%d]\n", __func__, __LINE__);
-        exit(1);
-    }
+    MOV_R13_REG_RAM(arg);
+    PUSH_R13;
 
     return 0;
 }
@@ -241,16 +295,7 @@ int makePushRAMNum(char *src, Bin_code *dst)
             break;
     }
 
-    #define CREATE2DIGITS(number)               \
-    dst->buffer[dst->length++] = res / number;  \
-    res %= number;  
-
-    CREATE2DIGITS(0x100000);
-    CREATE2DIGITS(0x1000);
-    CREATE2DIGITS(0x10);
-    CREATE2DIGITS(0x1);
-    
-    #undef CREATE2DIGITS
+    writeNumber(dst, res);
 
     FILL1BYTE(0x25);
     FILL1BYTE(0x2C);
@@ -267,7 +312,90 @@ int makePushRAMRegNum(char *src, Bin_code *dst, int is_num_frst)
 {
     is_debug(if (!src || !dst)  ERR(INVALID_PTR))
 
-    if 
+    int num  = 0,
+        oper = 0,
+        reg  = 0; 
+
+    // for construction PUSH[num + reg]
+    num  = *((int *) src);
+    oper = *(src + sizeof(int));
+    reg  = *((int *) (src + sizeof(int) + sizeof(char)));
+
+    if (!is_num_frst)
+    {
+        int temp = num;
+        num      = reg;
+        reg      = temp;
+    }
+
+    // now we can do only PUSH[reg + num], not PUSH[num + reg]
+    MOV_R13_REG(reg);    
+
+    // now mov r15, num
+    writeNumber(dst, num);
+    FILL1BYTE(0xBF);
+    FILL1BYTE(0x41);
+
+    switch (oper)
+    {
+    case '+':
+        FILL1BYTE(0xFD);
+        FILL1BYTE(0x01);
+        FILL1BYTE(0x4D);
+        break;
+    
+    case '-':
+        FILL1BYTE(0xFD);
+        FILL1BYTE(0x29);
+        FILL1BYTE(0x4D);
+        break;
+    
+    case '*':
+        fprintf(stderr, "That operation doesn't exitst yet\n");
+        PRINT_LINE;
+        exit(1);
+        break;
+
+    case '/':
+        fprintf(stderr, "That operation doesn't exitst yet\n");
+        PRINT_LINE;
+        exit(1);
+        break;
+
+    default:
+        fprintf(stderr, "Unknown sign of arif oper %c in [%s:%d]\n", oper, __func__, __LINE__);
+        exit(1);
+        break;
+    }
+
+    // now we have correct addr in R13
+
+    // mov r15, [r13]
+    FILL1BYTE(0x00);
+    FILL1BYTE(0x7D);
+    FILL1BYTE(0x8B);
+    FILL1BYTE(0x4D);
+
+    PUSH_R15;
+
+    return 0;
+}
+
+
+int writeNumber(Bin_code *dst, int num)
+{
+    is_debug(if (!dst)  ERR(INVALID_PTR));
+
+    #define CREATE2DIGITS(number)               \
+    dst->buffer[dst->length++] = num / number;  \
+    num %= number;  
+
+    CREATE2DIGITS(0x100000);
+    CREATE2DIGITS(0x1000);
+    CREATE2DIGITS(0x10);
+    CREATE2DIGITS(0x1);
+    
+    #undef CREATE2DIGITS
 
     return 0;
 }

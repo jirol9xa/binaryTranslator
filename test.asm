@@ -8,23 +8,17 @@ Movs:
         mov     rax, rbx
 
 pushes:
-        mov     r13, [rax]
-        mov     r13, [0x123]
-        mov     r13, [0x1234]
-        mov     r13, [0x123456]
+        mov     r15, 0x123456
 
         push    r13
 
-        push    rax
-        push    rbx
-        push    rcx
-        push    rdx
+        mov     r15, [r13]
+        ;push    [r13]
 
-        pop     rax
-        pop     rbx
-
-        jmp     Movs
-        jmp     pushes
+        add     r13, r15
+        sub     r13, r15
+        ;mul     r13, r15
+        ;div     r13, r15
 
         nop
 
