@@ -15,32 +15,7 @@ DEF_CMD(1, HLT,
 })
 DEF_CMD(2, PUSH,
 {
-
-    if (((code[cpu->ip - 1] & IS_REG) != 0) && ((code[cpu->ip - 1] & IS_RAM) != 0))
-    {
-        workWithParsedRAM(cpu, code, 0);
-    }
-    else if ((code[cpu->ip - 1] & IS_REG) != 0)
-    {
-        stackPush(&(cpu->stk), cpu->regs[*((int *) (code + cpu->ip))]);
-        cpu->ip += sizeof(int);
-        is_debug_lvl_0(cpu->real_ip ++);
-    }
-    else if (((code[cpu->ip - 1] & IS_RAM) != 0))
-    {   
-        sleep(0.5);
-        stackPush(&(cpu->stk), cpu->RAM[*((int *) (code + cpu->ip))]);
-        cpu->ip += sizeof(int);
-        is_debug_lvl_0(cpu->real_ip ++);
-    }
-    else
-    {
-    int value = *((int*) (code + cpu->ip));
-    value *= 1000;
-    stackPush(&(cpu->stk), value);
-    cpu->ip += sizeof(int);
-    is_debug_lvl_0(cpu->real_ip ++);
-    }
+    i += makePush(src->arr + i, dst);
 })
 DEF_CMD(3, OUT, 
 {

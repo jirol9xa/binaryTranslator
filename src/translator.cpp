@@ -2,117 +2,12 @@
 #include "stdio.h"
 #include "translator.h"
 #include "reader.h"
+#include "DSLtrans.h"
 
 // constant for myOwn binary commands
 const int IS_REG = 1 << 5;  // if using regs
 const int IS_RAM = 1 << 6;  // if using ram
 
-
-#define PUSH_R13                        \
-{                                       \
-    dst->buffer[dst->length++] = 0x55;  \
-    dst->buffer[dst->length++] = 0x41;  \
-}
-
-#define POP_R13                         \
-{                                       \
-    dst->buffer[dst->length++] = 0x5D;  \
-    dst->buffer[dst->length++] = 0x41;  \
-}
-
-#define POP_R15                         \
-{                                       \
-    dst->buffer[dst->length++] = 0x5F;  \
-    dst->buffer[dst->length++] = 0x41;  \
-}
-
-#define PUSH_R15                        \
-{                                       \
-    dst->buffer[dst->length++] = 0x57;  \
-    dst->buffer[dst->length++] = 0x41;  \
-}
-
-#define MOV_R13_R_X_RAM(first_num)                                          \
-{                                                                           \
-    dst->buffer[dst->length++] = first_num;  /* this is mov r13, [r*x] */   \
-    dst->buffer[dst->length++] = 0x8B;                                      \
-    dst->buffer[dst->length++] = 0x4C;                                      \
-}
-
-// this is macroses for mov r13, [r*x]
-#define MOV_R13_RAX_RAM MOV_R13_R_X_RAM(0x28);
-#define MOV_R13_RBX_RAM MOV_R13_R_X_RAM(0x2B);
-#define MOV_R13_RCX_RAM MOV_R13_R_X_RAM(0x29);
-#define MOV_R13_RDX_RAM MOV_R13_R_X_RAM(0x2A);
-
-#define MOV_R13_R_X(first_num)                                              \
-{                                                                           \
-    dst->buffer[dst->length++] = first_num;  /* this is mov r13, r*x */     \
-    dst->buffer[dst->length++] = 0x89;                                      \
-    dst->buffer[dst->length++] = 0x49;                                      \
-}
-
-#define MOV_R13_RAX MOV_R13_R_X(0xC5)
-#define MOV_R13_RBX MOV_R13_R_X(0xDD)
-#define MOV_R13_RCX MOV_R13_R_X(0xCD)
-#define MOV_R13_RDX MOV_R13_R_X(0xD5)
-
-
-#define FILL1BYTE(number)   dst->buffer[dst->length++] = number;
-
-// this is macro for mov r13, [r*x]
-#define MOV_R13_REG_RAM(reg_num)\
-{                               \
-    switch (reg_num)            \
-    {                           \
-    case 0: /*PUSH[rax]*/       \
-        MOV_R13_RAX_RAM;        \
-                                \
-        break;                  \
-    case 1:                     \
-        MOV_R13_RBX_RAM;        \
-                                \
-        break;                  \
-    case 2:                     \
-        MOV_R13_RCX_RAM;        \
-                                \
-        break;                  \
-    case 3:                     \
-        MOV_R13_RDX_RAM;        \
-                                \
-        break;                  \
-    default:                    \
-        fprintf(stderr, "ERROR OF CHOOSING REG in [%s:%d]\n", __func__, __LINE__); \
-        exit(1);                \
-    }                           \
-}
-
-// this is macro for mov r13, r*x
-#define MOV_R13_REG(reg_num)\
-{                               \
-    switch (reg_num)            \
-    {                           \
-    case 0:                     \
-        MOV_R13_RAX;            \
-                                \
-        break;                  \
-    case 1:                     \
-        MOV_R13_RBX;            \
-                                \
-        break;                  \
-    case 2:                     \
-        MOV_R13_RCX;            \
-                                \
-        break;                  \
-    case 3:                     \
-        MOV_R13_RDX;            \
-                                \
-        break;                  \
-    default:                    \
-        fprintf(stderr, "ERROR OF CHOOSING REG in [%s:%d]\n", __func__, __LINE__); \
-        exit(1);                \
-    }                           \
-}
 // int SourceCtor(Sourse_code *src)
 // {
 //     is_debug(if (!src)  ERR(INVALID_PTR))
@@ -174,6 +69,19 @@ int translation(Sourse_code *src, Bin_code *dst)
     }
 
     return 0;
+}
+
+
+int makePop(char *src, Bin_code *dst)
+{
+    is_debug(if (!src || !dst)  ERR(INVALID_PTR));
+
+    int curr_symb = 0;
+
+    if ((src[curr_symb] & IS_REG) && (src[curr_symb] & IS_RAM))     // for POP[reg + num], POP[reg + reg], POP[reg]
+
+
+    return curr_symb;
 }
 
 
@@ -270,6 +178,30 @@ int makePushRAMReg(char *src, Bin_code *dst)
 }
 
 
+int makePushRAMReg2(char *src, Bin_code *dst)
+{
+    is_debug(if (!src || !dst)  ERR(INVALID_PTR));
+
+    int reg1 = *((int *) src),
+        oper = *(src + sizeof(int)),
+        reg2 = *((int *) (src + sizeof(int) + sizeof(char)));
+    
+    MOV_R13_REG(reg1);
+    MOV_R15_R13;
+    MOV_R13_REG(reg2);
+
+    CALC_R13_R15(oper);
+
+    // now we have correct addr in R13
+
+    MOV_R15_R13RAM;
+
+    PUSH_R15;
+
+    return 0;
+}
+
+
 int makePushRAMNum(char *src, Bin_code *dst)
 {
     is_debug(if (!src || !dst)  ERR(INVALID_PTR));
@@ -295,12 +227,7 @@ int makePushRAMNum(char *src, Bin_code *dst)
             break;
     }
 
-    writeNumber(dst, res);
-
-    FILL1BYTE(0x25);
-    FILL1BYTE(0x2C);
-    FILL1BYTE(0x8B);
-    FILL1BYTE(0x4C);
+    MOV_R13_NUMBER(dst, res);
 
     PUSH_R13;
 
@@ -336,45 +263,11 @@ int makePushRAMRegNum(char *src, Bin_code *dst, int is_num_frst)
     FILL1BYTE(0xBF);
     FILL1BYTE(0x41);
 
-    switch (oper)
-    {
-    case '+':
-        FILL1BYTE(0xFD);
-        FILL1BYTE(0x01);
-        FILL1BYTE(0x4D);
-        break;
-    
-    case '-':
-        FILL1BYTE(0xFD);
-        FILL1BYTE(0x29);
-        FILL1BYTE(0x4D);
-        break;
-    
-    case '*':
-        fprintf(stderr, "That operation doesn't exitst yet\n");
-        PRINT_LINE;
-        exit(1);
-        break;
-
-    case '/':
-        fprintf(stderr, "That operation doesn't exitst yet\n");
-        PRINT_LINE;
-        exit(1);
-        break;
-
-    default:
-        fprintf(stderr, "Unknown sign of arif oper %c in [%s:%d]\n", oper, __func__, __LINE__);
-        exit(1);
-        break;
-    }
+    CALC_R13_R15(oper);
 
     // now we have correct addr in R13
 
-    // mov r15, [r13]
-    FILL1BYTE(0x00);
-    FILL1BYTE(0x7D);
-    FILL1BYTE(0x8B);
-    FILL1BYTE(0x4D);
+    MOV_R15_R13RAM;
 
     PUSH_R15;
 
