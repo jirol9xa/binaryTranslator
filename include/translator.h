@@ -43,4 +43,10 @@
 
     #define PRINT_LINE  fprintf(stderr, "[%s:%d]\n", __func__, __LINE__); 
 
+    int SourceDtor(Sourse_code *src);
+    int BinCtor   (Bin_code *dst, long buff_length);
+    int BinDtor   (Bin_code *dst);
+
+    int translation(Sourse_code *src, Bin_code *dst);
+
 #endif

@@ -38,19 +38,6 @@
     FILL1BYTE(0x4D);    \
 }
 
-#define MOV_R13_R_X_RAM(first_num)                        \
-{                                                         \
-    FILL1BYTE(first_num);  /* this is mov r13, [r*x] */   \
-    FILL1BYTE(0x8B);                                      \
-    FILL1BYTE(0x4C);                                      \
-}
-
-// this is macroses for mov r13, [r*x]
-#define MOV_R13_RAX_RAM MOV_R13_R_X_RAM(0x28);
-#define MOV_R13_RBX_RAM MOV_R13_R_X_RAM(0x2B);
-#define MOV_R13_RCX_RAM MOV_R13_R_X_RAM(0x29);
-#define MOV_R13_RDX_RAM MOV_R13_R_X_RAM(0x2A);
-
 #define MOV_R13_R_X(first_num)                                              \
 {                                                                           \
     FILL1BYTE(first_num);  /* this is mov r13, r*x */     \
@@ -62,33 +49,6 @@
 #define MOV_R13_RBX MOV_R13_R_X(0xDD)
 #define MOV_R13_RCX MOV_R13_R_X(0xCD)
 #define MOV_R13_RDX MOV_R13_R_X(0xD5)
-
-// this is macro for mov r13, [r*x]
-#define MOV_R13_REG_RAM(reg_num)\
-{                               \
-    switch (reg_num)            \
-    {                           \
-    case 0: /*PUSH[rax]*/       \
-        MOV_R13_RAX_RAM;        \
-                                \
-        break;                  \
-    case 1:                     \
-        MOV_R13_RBX_RAM;        \
-                                \
-        break;                  \
-    case 2:                     \
-        MOV_R13_RCX_RAM;        \
-                                \
-        break;                  \
-    case 3:                     \
-        MOV_R13_RDX_RAM;        \
-                                \
-        break;                  \
-    default:                    \
-        fprintf(stderr, "ERROR OF CHOOSING REG in [%s:%d]\n", __func__, __LINE__); \
-        exit(1);                \
-    }                           \
-}
 
 // this is macro for mov r13, r*x
 #define MOV_R13_REG(reg_num)\
@@ -167,4 +127,12 @@
     FILL1BYTE(0x2C);                \
     FILL1BYTE(0x8B);                \
     FILL1BYTE(0x4C);                \
+}
+
+#define MOV_R13RAM_R15              \
+{/* mov [r13], r15*/                \
+    FILL1BYTE(0x00);                \
+    FILL1BYTE(0x7D);                \
+    FILL1BYTE(0x89);                \
+    FILL1BYTE(0x4D);                \
 }

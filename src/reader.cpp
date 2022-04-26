@@ -4,6 +4,9 @@
 #include "reader.h"
 
 
+const int Header_size = 20;
+
+
 static long fileLength(FILE *fp);
 
 
@@ -14,13 +17,17 @@ int reader(FILE *src_file, Sourse_code *src)
 
     long length = fileLength(src_file);
 
+    fprintf(stderr, "length = %ld\n", length);
+
     src->buffer = (char *) calloc(length, sizeof(char));
     is_debug(if (!src)  ERR(MEM_OVERFLOW))
 
-    long rl_length = fread(src, sizeof(char), length, src_file);
+    long rl_length = fread(src->buffer, sizeof(char), length, src_file);
 
     if (length != rl_length)
     {
+        fprintf(stderr, "rl_length = %ld, length = %ld\n", rl_length, length);
+
         void *temp_ptr = realloc(src->buffer, (rl_length + 1) * sizeof(char));
         is_debug(if (!temp_ptr)     ERR(MEM_OVERFLOW))
 
@@ -51,9 +58,19 @@ static long fileLength(FILE *fp)
         }                                               \
     }
 
-    FSEEK(END);
-    length = ftell(fp);
-    FSEEK(SET);
+    if (fseek(fp, 0L, SEEK_END))                
+    {                                               
+        printf("In %s fseek failed\n", __func__);   
+        ERR(FUNC_FAILED);                           
+    }                                               
+    
+    length = ftell(fp) - Header_size;
+    
+    if (fseek(fp, (long) Header_size, SEEK_SET))                
+    {                                               
+        printf("In %s fseek failed\n", __func__);   
+        ERR(FUNC_FAILED);                           
+    } 
 
     #undef FSEEK
 
