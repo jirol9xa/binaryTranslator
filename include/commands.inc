@@ -4,7 +4,7 @@ DEF_CMD(0, IN,
 })
 DEF_CMD(1, HLT, 
 {
-    
+    FILL1BYTE(0xC3);
 })
 DEF_CMD(2, PUSH,
 {

@@ -1,7 +1,15 @@
 #include "stdio.h"
 #include <sys/mman.h>
+#include "errno.h"
+#include "stdlib.h"
 #include "translator.h"
 #include "reader.h"
+#include "limits.h"
+
+#ifndef PAGESIZE
+    #define PAGESIZE 4096
+#endif
+
 
 int main(const int argc, const char *argv[])
 {
@@ -26,12 +34,35 @@ int main(const int argc, const char *argv[])
 
     translation(&src, &binary);
 
+    for (int i = 0; i < binary.length; ++i)
+    {
+        printf("%x ", binary.buffer[i]);
+    }
+    printf("\n");
+
     fprintf(stderr, "buff length = %ld\n", binary.length);
-    fprintf(stderr, "mprot = %d", mprotect(binary.buffer, binary.length, PROT_EXEC));
+
+    posix_memalign((void **) &(binary.buffer), PAGESIZE, binary.length);
+
+    if (mprotect(binary.buffer, binary.length, PROT_WRITE))
+    {
+        perror("Can't make mprotect\n");
+        exit(errno);
+    }
+    if (mprotect(binary.buffer, binary.length, PROT_EXEC))
+    {
+        perror("Can't make mprotect\n");
+        exit(errno);
+    }
+
+    PRINT_LINE;
 
     void (*Pup) (void);
     Pup = (void (*) (void)) binary.buffer;
+    PRINT_LINE;
     Pup();
+
+    PRINT_LINE;
 
     SourceDtor(&src);
     BinDtor(&binary);

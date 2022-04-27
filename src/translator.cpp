@@ -16,7 +16,7 @@ static int makePuPRAMReg2  (char *src, Bin_code *dst, int is_push);
 static int makePushRAMNum  (char *src, Bin_code *dst, int is_push);
 static int makePuPRAMRegNum(char *src, Bin_code *dst, int is_push, int is_num_frst);
 
-static int writeNumber(Bin_code *dst, int num);
+static int writeNumber(Bin_code *dst, unsigned num);
 
 
 // int SourceCtor(Sourse_code *src)
@@ -48,7 +48,7 @@ int BinCtor(Bin_code *dst, long buff_length)
         buff[i] = 0xC3;
     }
     
-    mprotect(dst->buffer, buff_length, PROT_EXEC);
+    //mprotect(dst->buffer, buff_length, PROT_EXEC);
 
     dst->asm_version = fopen("ASM_LOGS", "w");
     dst->capacity    = buff_length;
@@ -145,22 +145,76 @@ static int makePushPop(char *src, Bin_code *dst, int is_push)
         switch (arg)
         {
             case 0:
-                if (is_push)    FILL1BYTE(0x50)
-                else            FILL1BYTE(0x58)
+                if (is_push)
+                {
+                FILL1BYTE(0x50);
+                fprintf(dst->asm_version, "PUSH rax\n");
+                fflush(dst->asm_version);                         
+
+                }    
+                else
+                {
+                    FILL1BYTE(0x58);
+                    fprintf(dst->asm_version, "PUSH rax\n");
+                    fflush(dst->asm_version);
+                }            
                 break;
             case 1:
-                if (is_push)    FILL1BYTE(0x53)
-                else            FILL1BYTE(0x5B)
+                if (is_push)
+                {
+                    FILL1BYTE(0x53);
+                    fprintf(dst->asm_version, "PUSH rbx\n");
+                    fflush(dst->asm_version);
+                }    
+                else
+                {
+                    FILL1BYTE(0x5B);
+                    fprintf(dst->asm_version, "POP rbx\n");
+                    fflush(dst->asm_version);
+                }            
                 break;
             case 2:
-                if (is_push)    FILL1BYTE(0x51)
-                else            FILL1BYTE(0x59)
+                if (is_push)    
+                {
+                    FILL1BYTE(0x51)
+                    fprintf(dst->asm_version, "PUSH rcx\n");
+                    fflush(dst->asm_version);
+                }
+                else
+                {
+                    FILL1BYTE(0x59);
+                    fprintf(dst->asm_version, "POP rcx\n");
+                    fflush(dst->asm_version);
+                }            
                 break;
+
             case 3:
-                if (is_push)    FILL1BYTE(0x52)
-                else            FILL1BYTE(0x5A)
+                if (is_push)    
+                {
+                    FILL1BYTE(0x52);
+                    fprintf(dst->asm_version, "PUSH rdx\n");
+                    fflush(dst->asm_version);
+                }
+                else
+                {
+                    FILL1BYTE(0x5A)
+                    fprintf(dst->asm_version, "POP rdx\n");
+                    fflush(dst->asm_version);
+                }
                 break;
         } 
+    }
+    else if (src[curr_symb] & IS_REG)
+    {
+        curr_symb++;
+
+        unsigned arg = *((unsigned *) src + curr_symb);
+        curr_symb   += sizeof(unsigned);
+
+        MOV_R13_NUMBER(dst, arg);
+        MOV_R15_R13RAM;
+        PUSH_R15;
+
     }
     else        // for PUSH num
     {
@@ -171,9 +225,13 @@ static int makePushPop(char *src, Bin_code *dst, int is_push)
             int arg    = *((int *) (src + curr_symb));
             curr_symb += sizeof(int);
 
+            FILL1BYTE(0x68);     
+
             writeNumber(dst, arg);
 
-            FILL1BYTE(0x68);     
+            fprintf(dst->asm_version, "push %d\n", arg);
+            PRINT_LINE;
+            fflush(dst->asm_version);
         }
         else
         {
@@ -326,20 +384,27 @@ static int makePuPRAMRegNum(char *src, Bin_code *dst, int is_push, int is_num_fr
 }
 
 
-static int writeNumber(Bin_code *dst, int num)
+static int writeNumber(Bin_code *dst, unsigned num)
 {
     is_debug(if (!dst)  ERR(INVALID_PTR));
 
-    #define CREATE2DIGITS(number)               \
-    dst->buffer[dst->length++] = num / number;  \
-    num %= number;  
-
-    CREATE2DIGITS(0x100000);
-    CREATE2DIGITS(0x1000);
-    CREATE2DIGITS(0x10);
-    CREATE2DIGITS(0x1);
+    // #define CREATE2DIGITS(number)               \
+    // dst->buffer[dst->length++] = num % number;  \
+    // num /= number;  
+    // 0x123456;
+    // CREATE2DIGITS(0x100000);
+    // CREATE2DIGITS(0x1000);
+    // CREATE2DIGITS(0x100);
+    // CREATE2DIGITS(0x1);
     
-    #undef CREATE2DIGITS
+    // #undef CREATE2DIGITS
+
+
+    for (int i = 0; i < 4; ++i)
+    {
+        dst->buffer[dst->length++] = num % 0x100;
+        num /= 0x100;
+    }
 
     return 0;
 }
