@@ -1,5 +1,5 @@
 CC = g++
-C_FLAGS = -c -O2
+C_FLAGS = -c
 I_FLAGS = -I include/
 DEBUG_FLAGS = -fsanitize=address,leak,undefined -Wall -g
 

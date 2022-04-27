@@ -19,10 +19,10 @@ int reader(FILE *src_file, Sourse_code *src)
 
     fprintf(stderr, "length = %ld\n", length);
 
-    src->buffer = (char *) calloc(length, sizeof(char));
+    src->buffer = (unsigned char *) calloc(length, sizeof(unsigned char));
     is_debug(if (!src)  ERR(MEM_OVERFLOW))
 
-    long rl_length = fread(src->buffer, sizeof(char), length, src_file);
+    long rl_length = fread(src->buffer, sizeof(unsigned char), length, src_file);
 
     if (length != rl_length)
     {
@@ -31,7 +31,7 @@ int reader(FILE *src_file, Sourse_code *src)
         void *temp_ptr = realloc(src->buffer, (rl_length + 1) * sizeof(char));
         is_debug(if (!temp_ptr)     ERR(MEM_OVERFLOW))
 
-        src->buffer = (char *) temp_ptr;
+        src->buffer = (unsigned char *) temp_ptr;
 
         fprintf(stderr, "FSEEK returned the wrong length\n");
     }

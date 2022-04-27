@@ -3,16 +3,16 @@
     
     struct Sourse_code
     {
-        char *buffer;
-        long  length;
+        unsigned char *buffer;
+        long           length;
     };
 
     struct Bin_code
     {
-        char *buffer;
-        long  length;
-        long  capacity;
-        FILE *asm_version;
+        unsigned char *buffer;
+        long           length;
+        long           capacity;
+        FILE          *asm_version;
     };
 
     enum ERRORS

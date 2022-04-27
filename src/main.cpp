@@ -4,11 +4,6 @@
 #include "stdlib.h"
 #include "translator.h"
 #include "reader.h"
-#include "limits.h"
-
-#ifndef PAGESIZE
-    #define PAGESIZE 4096
-#endif
 
 
 int main(const int argc, const char *argv[])
@@ -42,14 +37,12 @@ int main(const int argc, const char *argv[])
 
     fprintf(stderr, "buff length = %ld\n", binary.length);
 
-    posix_memalign((void **) &(binary.buffer), PAGESIZE, binary.length);
-
-    if (mprotect(binary.buffer, binary.length, PROT_WRITE))
-    {
-        perror("Can't make mprotect\n");
-        exit(errno);
-    }
-    if (mprotect(binary.buffer, binary.length, PROT_EXEC))
+    // if (mprotect(binary.buffer, binary.length, PROT_WRITE))
+    // {
+    //     perror("Can't make mprotect\n");
+    //     exit(errno);
+    // }
+    if (mprotect(binary.buffer, binary.length, PROT_EXEC | PROT_WRITE))
     {
         perror("Can't make mprotect\n");
         exit(errno);
@@ -59,6 +52,7 @@ int main(const int argc, const char *argv[])
 
     void (*Pup) (void);
     Pup = (void (*) (void)) binary.buffer;
+    fprintf(stderr, "pup = %p\n", Pup);
     PRINT_LINE;
     Pup();
 
