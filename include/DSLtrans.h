@@ -32,6 +32,20 @@
              fflush(dst->asm_version));                     \
 }
 
+#define POP_RAX                                             \
+{                                                           \
+    FILL1BYTE(0x58);                                        \
+    is_debug(fprintf(dst->asm_version, "pop rax\n");        \
+             fflush(dst->asm_version));                     \
+}
+
+#define PUSH_RAX                                            \
+{                                                           \
+    FILL1BYTE(0x50);                                        \
+    is_debug(fprintf(dst->asm_version, "push rax\n");       \
+             fflush(dst->asm_version));                     \
+}
+
 #define MOV_R15_R13                                         \
 {                                                           \
     FILL1BYTE(0x4D);                                        \
@@ -118,15 +132,35 @@
         break;                                                                                  \
                                                                                                 \
     case '*':                                                                                   \
-        fprintf(stderr, "That operation doesn't exitst yet\n");                                 \
-        PRINT_LINE;                                                                             \
-        exit(1);                                                                                \
+        PUSH_RAX;                                                                               \
+        FILL1BYTE(0x4C);                                                                        \
+        FILL1BYTE(0x89);                                                                        \
+        FILL1BYTE(0xE8);                                                                        \
+        is_debug(fprintf(dst->asm_version, "mov rax, r13\n");                                   \
+                 fflush(dst->asm_version));                                                     \
+        FILL1BYTE(0x49);                                                                        \
+        FILL1BYTE(0xF7);                                                                        \
+        FILL1BYTE(0xE7);                                                                        \
+                is_debug(fprintf(dst->asm_version, "mul r15\n");                                \
+                 fflush(dst->asm_version));                                                     \
+        MOV_R13_RAX;                                                                            \
+        POP_RAX;                                                                                \
         break;                                                                                  \
                                                                                                 \
     case '/':                                                                                   \
-        fprintf(stderr, "That operation doesn't exitst yet\n");                                 \
-        PRINT_LINE;                                                                             \
-        exit(1);                                                                                \
+        PUSH_RAX;                                                                               \
+        FILL1BYTE(0x4C);                                                                        \
+        FILL1BYTE(0x89);                                                                        \
+        FILL1BYTE(0xE8);                                                                        \
+        is_debug(fprintf(dst->asm_version, "mov rax, r13\n");                                   \
+                 fflush(dst->asm_version));                                                     \
+        FILL1BYTE(0x49);                                                                        \
+        FILL1BYTE(0xF7);                                                                        \
+        FILL1BYTE(0xF7);                                                                        \
+                is_debug(fprintf(dst->asm_version, "div r15\n");                                \
+                 fflush(dst->asm_version));                                                     \
+        MOV_R13_RAX;                                                                            \
+        POP_RAX;                                                                                \
         break;                                                                                  \
                                                                                                 \
     default:                                                                                    \

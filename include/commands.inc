@@ -16,19 +16,27 @@ DEF_CMD(3, OUT,
 })
 DEF_CMD(4, ADD, 
 {
-
+    int oper = '+';
+    makeArifm(src_arr + i, dst, oper);
+    ++i;
 })
 DEF_CMD(5, SUB, 
 {
-
+    int oper = '-';
+    makeArifm(src_arr + i, dst, oper);
+    ++i;
 })
 DEF_CMD(6, MUL,
 {
-
+    int oper = '*';
+    makeArifm(src_arr + i, dst, oper);
+    ++i;
 })
 DEF_CMD(7, DIV, 
 {
-
+    int oper = '/';
+    makeArifm(src_arr + i, dst, oper);
+    ++i;
 })
 DEF_CMD(8, POP, 
 {   

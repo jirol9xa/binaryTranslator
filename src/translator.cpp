@@ -23,6 +23,8 @@ static int makePuPRAMReg   (unsigned char *src, Bin_code *dst, int is_push);
 static int makePuPRAMReg2  (unsigned char *src, Bin_code *dst, int is_push);
 static int makePushRAMNum  (unsigned char *src, Bin_code *dst, int is_push);
 static int makePuPRAMRegNum(unsigned char *src, Bin_code *dst, int is_push, int is_num_frst);
+static int makeArifm       (unsigned char *src, Bin_code *dst, int oper);
+
 
 static int writeNumber(Bin_code *dst, unsigned num);
 
@@ -90,8 +92,9 @@ int translation(Sourse_code *src, Bin_code *dst)
 
     saveAllRegs(dst);
 
-    for (long i = 0; i <= src->length; i++)
+    for (long i = 0; i < src->length; )
     {
+        fprintf(stderr, "cmd code = %x\n", src_arr[i]);
         switch (src_arr[i] & (IS_REG - 1))  // for getting only cmd code (without any info about regs and ram)
         {
             #define DEF_CMD(number, name, DSLcode)          \
@@ -387,9 +390,10 @@ static int makePuPRAMRegNum(unsigned char *src, Bin_code *dst, int is_push, int 
     MOV_R13_REG(reg);    
 
     // now mov r15, num
-    writeNumber(dst, num);
-    FILL1BYTE(0xBF);
     FILL1BYTE(0x41);
+    FILL1BYTE(0xBF);
+    writeNumber(dst, num);
+    fprintf(dst->asm_version, "mov r15, %d\n", num);
 
     CALC_R13_R15(oper);
 
@@ -433,6 +437,8 @@ static int saveAllRegs(Bin_code *dst)
     FILL1BYTE(0x53); fprintf(Asm, "push rbx\n"); fflush(Asm);
     FILL1BYTE(0x51); fprintf(Asm, "push rcx\n"); fflush(Asm);
     FILL1BYTE(0x52); fprintf(Asm, "push rdx\n"); fflush(Asm);
+    FILL1BYTE(0x56); fprintf(Asm, "push rsi\n"); fflush(Asm);
+    FILL1BYTE(0x57); fprintf(Asm, "push rdi\n"); fflush(Asm);
     PUSH_R13;
     PUSH_R15;
 
@@ -448,10 +454,25 @@ static int restoreAllRegs(Bin_code *dst)
 
     POP_R15;
     POP_R13;
+    FILL1BYTE(0x5F); fprintf(Asm, "pop rdi\n"); fflush(Asm);
+    FILL1BYTE(0x5E); fprintf(Asm, "pop rsi\n"); fflush(Asm);
     FILL1BYTE(0x5A); fprintf(Asm, "pop rdx\n"); fflush(Asm);
     FILL1BYTE(0x59); fprintf(Asm, "pop rcx\n"); fflush(Asm);
     FILL1BYTE(0x5B); fprintf(Asm, "pop rbx\n"); fflush(Asm);
     FILL1BYTE(0x58); fprintf(Asm, "pop rax\n"); fflush(Asm);
+
+    return 0;
+}
+
+
+static int makeArifm(unsigned char *src, Bin_code *dst, int oper)
+{
+    is_debug(if (!dst || !src)  ERR(INVALID_PTR));
+
+    POP_R15;
+    POP_R13;
+    CALC_R13_R15(oper);
+    PUSH_R13;
 
     return 0;
 }

@@ -37,7 +37,7 @@ int reader(FILE *src_file, Sourse_code *src)
     }
 
     src->buffer[rl_length] = '\0';
-    src->length = rl_length + 1;
+    src->length = rl_length;
 
     return 0;
 }
