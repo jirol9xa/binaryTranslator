@@ -1,6 +1,7 @@
 DEF_CMD(0, IN, 
 {
-    
+    makeIn(dst);
+    ++i;
 })
 DEF_CMD(1, HLT, 
 {

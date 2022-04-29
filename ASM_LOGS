@@ -7,21 +7,24 @@ push rdi
 push r13
 push r15
 push 100
-push 200
+mov r15, r13
+xor rax,rax
+mov r13, 4220103
+mov rax, r13
+call rax
+push rax
+mov rax, r15
 pop r15
 pop r13
-push rax
-mov rax, r13
-push rdx
-xor rdx, rdxdiv r15
-pop rdx
-pop rax
+add r13, r15
 push r13
-xor rax,rax
 pop r15
+mov rdi, r15
 push rax
-mov r13, 4218818
-call printf
+xor rax,rax
+mov r13, 4220053
+mov rax, r13
+call rax
 pop rax
 pop r15
 pop r13

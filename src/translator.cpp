@@ -11,8 +11,6 @@
 #endif
 
 
-const char * __restrict__ format = "%d\n";
-
 // constant for myOwn binary commands
 const int IS_REG = 1 << 5;  // if using regs
 const int IS_RAM = 1 << 6;  // if using ram
@@ -27,10 +25,12 @@ static int makePushRAMNum  (unsigned char *src, Bin_code *dst, int is_push);
 static int makePuPRAMRegNum(unsigned char *src, Bin_code *dst, int is_push, int is_num_frst);
 static int makeArifm       (Bin_code *dst, int oper);
 static int makeOut         (Bin_code *dst);
+static int makeIn          (Bin_code *dst);
 
 static int writeNumber(Bin_code *dst, u_int64_t num, int size = 4);
 
-static int wrapPrintf(int arg);
+static int wrapPrintf(int  arg);
+static int wrapScanf (u_int64_t *arg);
 
 // int SourceCtor(Sourse_code *src)
 // {
@@ -71,6 +71,17 @@ int BinCtor(Bin_code *dst, long buff_length)
 
     dst->asm_version = fopen("ASM_LOGS", "w");
     dst->capacity    = buff_length;
+
+    dst->dst_ip = 0;
+    dst->src_ip = 0;
+
+
+    temp_ptr = (Label *) calloc(buff_length / 5, sizeof(Label));
+    if (!temp_ptr)  ERR(MEM_OVERFLOW);
+
+    dst->labels.data     = (Label *) temp_ptr;
+    dst->labels.size     = 0;
+    dst->labels.capacity = buff_length / 5;
 
     return 0;
 }
@@ -485,76 +496,162 @@ static int makeOut(Bin_code *dst)
 {
     is_debug(if (!dst)  ERR(INVALID_PTR));
 
-    // //preparing args
-    // FILL1BYTE(0x48);
-    // FILL1BYTE(0xBF);
-    // writeNumber(dst, (u_int64_t) &format, 8);
-    // fprintf(dst->asm_version, "mov rdi, offset format\n"); fflush(dst->asm_version); // mb not offset
+    POP_R15;
+    FILL1BYTE(0x4C);    // mov rdi, r15
+    FILL1BYTE(0x89);    // mov rdi, r15
+    FILL1BYTE(0xFF);    // mov rdi, r15
+    fprintf(dst->asm_version, "mov rdi, r15\n"); fflush(dst->asm_version);
 
-    // fprintf(stderr, "format addr = %p\n", &format);
-
-    // POP_R15;
-    // FILL1BYTE(0x4C);
-    // FILL1BYTE(0x89);
-    // FILL1BYTE(0xFE);
-    // fprintf(dst->asm_version, "mov rsi, r15\n"); fflush(dst->asm_version);
-
-    //PUSH_RAX;       // saving rax
+    PUSH_RAX;
 
     FILL1BYTE(0x48);
     FILL1BYTE(0x31);
     FILL1BYTE(0xC0);
     fprintf(dst->asm_version, "xor rax,rax\n"); fflush(dst->asm_version);
 
-    // int (*printF)(const char * __restrict__ format, ...);
-
-    // printF = printf;
-
-    //
-    POP_R15;
-    FILL1BYTE(0x4C);    // mov rdi, r15
-    FILL1BYTE(0x89);    // mov rdi, r15
-    FILL1BYTE(0xFF);    // mov rdi, r15
-    //
-
-    PUSH_RAX;
 
     MOV_R13_NUMBER(dst, (u_int64_t) &wrapPrintf);
 
-    FILL1BYTE(0x4C);    // mov rax, r13
-    FILL1BYTE(0x89);    // mov rax, r13
-    FILL1BYTE(0xEB);    // mov rax, r13
+    FILL1BYTE(0x4C);
+    FILL1BYTE(0x89);
+    FILL1BYTE(0xEB);
+    fprintf(dst->asm_version, "mov rax, r13\n"); fflush(dst->asm_version);
 
-    FILL1BYTE(0xFF);    // call rax
-    FILL1BYTE(0xD3);    // call rax
-
-
-
-    // FILL1BYTE(0x41);    // call r13
-    // FILL1BYTE(0xFF);    // call r13
-    // FILL1BYTE(0xD5);    // call r13
-    //writeNumber(dst, (unsigned int) printF);
-
-    // u_int64_t num = (u_int64_t) &wrapPrintf;
-
-    fprintf(stderr, "Wprintf addr = %lx\n", (u_int64_t) &wrapPrintf);
-    fprintf(stderr, "Stdprintf addr = %lx\n", (u_int64_t) &printf);
-
-    //writeNumber(dst, (u_int64_t) &wrapPrintf, 4);
-    fprintf(dst->asm_version, "call printf\n"); fflush(dst->asm_version);
+    FILL1BYTE(0xFF);
+    FILL1BYTE(0xD3);
+    fprintf(dst->asm_version, "call rax\n"); fflush(dst->asm_version);
 
     POP_RAX;        // restoring rax
 
-    //FILL1BYTE(0xC3);
+    return 0;
+}
+
+
+static int makeIn(Bin_code *dst)
+{
+    is_debug(if (!dst)  ERR(INVALID_PTR));
+
+    // FILL1BYTE(0x48);
+    // FILL1BYTE(0x89);
+    // FILL1BYTE(0xE7);
+    // fprintf(dst->asm_version, "mov rdi, rsp\n"); fflush(dst->asm_version);
+
+    // FILL1BYTE(0x48);
+    // FILL1BYTE(0xFF);
+    // FILL1BYTE(0xCC);
+    // fprintf(dst->asm_version, "dec rsp\n"); fflush(dst->asm_version);
+
+    MOV_R13_RAX;    // saving rax in r15
+    MOV_R15_R13;    // saving rax in r15
+
+    FILL1BYTE(0x48);
+    FILL1BYTE(0x31);
+    FILL1BYTE(0xC0);
+    fprintf(dst->asm_version, "xor rax,rax\n"); fflush(dst->asm_version);
+
+
+    MOV_R13_NUMBER(dst, (u_int64_t) &wrapScanf);
+
+    FILL1BYTE(0x4C);
+    FILL1BYTE(0x89);
+    FILL1BYTE(0xEB);
+    fprintf(dst->asm_version, "mov rax, r13\n"); fflush(dst->asm_version);
+
+    FILL1BYTE(0xFF);
+    FILL1BYTE(0xD3);
+    fprintf(dst->asm_version, "call rax\n"); fflush(dst->asm_version);
+
+    PUSH_RAX;   // rax have ret value of scanf
+
+    FILL1BYTE(0x4C);    // resoting rax
+    FILL1BYTE(0x89);    // resoting rax
+    FILL1BYTE(0xF8);    // resoting rax
+    fprintf(dst->asm_version, "mov rax, r15\n"); fflush(dst->asm_version);
 
     return 0;
 }
 
 
 static int wrapPrintf(int arg)
-
 {
     const char *__restrict__ string = "%d\n"; 
 
     return printf(string, arg);
+}
+
+
+static int wrapScanf (u_int64_t *arg)
+{
+    const char * __restrict__ string = "%d";
+    int value = 0;
+
+    while (!scanf(string, &value))
+    {
+        while (getchar() != '\n')   continue;
+    }
+
+    return value;
+}
+
+
+int labelPushBack(Bin_code *dst)
+{
+    is_debug(if (!dst)  ERR(INVALID_PTR));
+
+    Labels_arr arr = dst->labels;
+
+    if (arr.size + 1 >= arr.capacity)
+    {
+        
+    }
+
+    return 0;
+}
+
+
+int makeJmp(Bin_code *dst, int jmp_code)
+{
+    is_debug(if (!dst)  ERR(INVALID_PTR));
+
+    switch (jmp_code)
+    {
+        case 9:
+            FILL1BYTE(0xEB);
+            fprintf(dst->asm_version, "jmp <addr>\n"); fflush(dst->asm_version);
+            break;
+        
+        case 10:
+            FILL1BYTE(0x77);
+            fprintf(dst->asm_version, "ja  <addr>\n"); fflush(dst->asm_version);
+            break;
+
+        case 11:
+            FILL1BYTE(0x73);
+            fprintf(dst->asm_version, "jae <addr>\n"); fflush(dst->asm_version);
+            break;
+
+        case 12:
+            FILL1BYTE(0x72);
+            fprintf(dst->asm_version, "jb  <addr>\n"); fflush(dst->asm_version);
+            break;
+
+        case 13:
+            FILL1BYTE(0x76);
+            fprintf(dst->asm_version, "jbe <addr>\n"); fflush(dst->asm_version);
+            break;
+
+        case 14:
+            FILL1BYTE(0x74);
+            fprintf(dst->asm_version, "je  <addr>\n"); fflush(dst->asm_version);
+            break;
+        
+        case 15:
+            FILL1BYTE(0x75);
+            fprintf(dst->asm_version, "jne <addr>\n"); fflush(dst->asm_version);
+            break;
+    }
+
+    dst.
+
+    return 0;
 }

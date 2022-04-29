@@ -7,12 +7,28 @@
         long           length;
     };
 
+    struct Label
+    {
+        long  src_ip;
+        char *dst_place;
+    };
+
+    struct Labels_arr
+    {
+        Label *data;
+        int    capacity;
+        int    size;
+    };
+
     struct Bin_code
     {
         unsigned char *buffer;
         long           length;
         long           capacity;
         FILE          *asm_version;
+        long           src_ip;
+        long           dst_ip;
+        Labels_arr     labels;
     };
 
     enum ERRORS

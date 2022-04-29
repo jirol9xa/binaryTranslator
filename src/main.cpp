@@ -6,9 +6,6 @@
 #include "reader.h"
 
 
-extern const char * __restrict__ format;
-
-
 int main(const int argc, const char *argv[])
 {
     if (argc < 2)
@@ -50,11 +47,10 @@ int main(const int argc, const char *argv[])
 
     void (*Pup) (void);
     Pup = (void (*) (void)) binary.buffer;
-    fprintf(stderr, "pup p= %p, pup d = %lx\n", Pup, (u_int64_t) Pup);
-    PRINT_LINE;
     Pup();
 
-    PRINT_LINE;
+
+    fprintf(stderr, "buff addr = %p\n", &binary.buffer);
 
     SourceDtor(&src);
     BinDtor(&binary);
