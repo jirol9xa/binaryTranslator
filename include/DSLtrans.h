@@ -154,12 +154,21 @@
         FILL1BYTE(0xE8);                                                                        \
         is_debug(fprintf(dst->asm_version, "mov rax, r13\n");                                   \
                  fflush(dst->asm_version));                                                     \
+        FILL1BYTE(0x52);                                                                        \
+        FILL1BYTE(0x48);                                                                        \
+        FILL1BYTE(0x31);                                                                        \
+        FILL1BYTE(0xD2);                                                                        \
+        is_debug(fprintf(dst->asm_version, "push rdx\nxor rdx, rdx");                           \
+                 fflush(dst->asm_version));                                                     \
         FILL1BYTE(0x49);                                                                        \
         FILL1BYTE(0xF7);                                                                        \
         FILL1BYTE(0xF7);                                                                        \
                 is_debug(fprintf(dst->asm_version, "div r15\n");                                \
                  fflush(dst->asm_version));                                                     \
         MOV_R13_RAX;                                                                            \
+        FILL1BYTE(0x5A);                                                                        \
+        is_debug(fprintf(dst->asm_version, "pop rdx\n");                                        \
+                 fflush(dst->asm_version));                                                     \
         POP_RAX;                                                                                \
         break;                                                                                  \
                                                                                                 \
@@ -182,11 +191,9 @@
 
 #define MOV_R13_NUMBER(dst, num)                                \
 {/* mov r13, number*/                                           \
+    FILL1BYTE(0x41);                                            \
+    FILL1BYTE(0xBD);                                            \
     writeNumber(dst, num);                                      \
-    FILL1BYTE(0x4C);                                            \
-    FILL1BYTE(0x8B);                                            \
-    FILL1BYTE(0x2C);                                            \
-    FILL1BYTE(0x25);                                            \
     is_debug(fprintf(dst->asm_version, "mov r13, %d\n", num);   \
              fflush(dst->asm_version));                         \
 }

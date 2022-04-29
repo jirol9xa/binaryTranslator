@@ -4,7 +4,7 @@ I_FLAGS = -I include/
 DEBUG_FLAGS = -fsanitize=address,leak,undefined -Wall -g
 
 build:  main.o translator.o reader.o 
-	$(CC) main.o translator.o reader.o -o trans   $(DEBUG_FLAGS)
+	$(CC) -no-pie main.o translator.o reader.o -o trans   $(DEBUG_FLAGS)
 clear:
 	rm -rf *.o
 

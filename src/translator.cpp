@@ -11,6 +11,8 @@
 #endif
 
 
+const char * __restrict__ format = "%d\n";
+
 // constant for myOwn binary commands
 const int IS_REG = 1 << 5;  // if using regs
 const int IS_RAM = 1 << 6;  // if using ram
@@ -23,11 +25,12 @@ static int makePuPRAMReg   (unsigned char *src, Bin_code *dst, int is_push);
 static int makePuPRAMReg2  (unsigned char *src, Bin_code *dst, int is_push);
 static int makePushRAMNum  (unsigned char *src, Bin_code *dst, int is_push);
 static int makePuPRAMRegNum(unsigned char *src, Bin_code *dst, int is_push, int is_num_frst);
-static int makeArifm       (unsigned char *src, Bin_code *dst, int oper);
+static int makeArifm       (Bin_code *dst, int oper);
+static int makeOut         (Bin_code *dst);
 
+static int writeNumber(Bin_code *dst, u_int64_t num, int size = 4);
 
-static int writeNumber(Bin_code *dst, unsigned num);
-
+static int wrapPrintf(int arg);
 
 // int SourceCtor(Sourse_code *src)
 // {
@@ -57,13 +60,13 @@ int BinCtor(Bin_code *dst, long buff_length)
     if (!temp_ptr)  ERR(MEM_OVERFLOW);
 
     dst->buffer = (unsigned char *) temp_ptr;
-    
+
     unsigned char *buff = dst->buffer;
     for (int i = 0; i < buff_length; ++i)
     {
         buff[i] = 0xC3;
     }
-    
+
     //mprotect(dst->buffer, buff_length, PROT_EXEC);
 
     dst->asm_version = fopen("ASM_LOGS", "w");
@@ -176,14 +179,14 @@ static int makePushPop(unsigned char *src, Bin_code *dst, int is_push)
                 {
                 FILL1BYTE(0x50);
                 fprintf(dst->asm_version, "push rax\n");
-                fflush(dst->asm_version);                         
-                }    
+                fflush(dst->asm_version);
+                }
                 else
                 {
                     FILL1BYTE(0x58);
                     fprintf(dst->asm_version, "pop rax\n");
                     fflush(dst->asm_version);
-                }            
+                }
                 break;
             case 1:
                 if (is_push)
@@ -191,16 +194,16 @@ static int makePushPop(unsigned char *src, Bin_code *dst, int is_push)
                     FILL1BYTE(0x53);
                     fprintf(dst->asm_version, "push rbx\n");
                     fflush(dst->asm_version);
-                }    
+                }
                 else
                 {
                     FILL1BYTE(0x5B);
                     fprintf(dst->asm_version, "pop rbx\n");
                     fflush(dst->asm_version);
-                }            
+                }
                 break;
             case 2:
-                if (is_push)    
+                if (is_push)
                 {
                     FILL1BYTE(0x51)
                     fprintf(dst->asm_version, "push rcx\n");
@@ -211,11 +214,11 @@ static int makePushPop(unsigned char *src, Bin_code *dst, int is_push)
                     FILL1BYTE(0x59);
                     fprintf(dst->asm_version, "pop rcx\n");
                     fflush(dst->asm_version);
-                }            
+                }
                 break;
 
             case 3:
-                if (is_push)    
+                if (is_push)
                 {
                     FILL1BYTE(0x52);
                     fprintf(dst->asm_version, "push rdx\n");
@@ -228,7 +231,7 @@ static int makePushPop(unsigned char *src, Bin_code *dst, int is_push)
                     fflush(dst->asm_version);
                 }
                 break;
-        } 
+        }
     }
     else if (src[curr_symb] & IS_RAM)
     {
@@ -253,7 +256,7 @@ static int makePushPop(unsigned char *src, Bin_code *dst, int is_push)
             unsigned arg = *((unsigned *) (src + curr_symb));
             curr_symb   += sizeof(unsigned);
 
-            FILL1BYTE(0x68);     
+            FILL1BYTE(0x68);
 
             writeNumber(dst, arg);
 
@@ -264,7 +267,7 @@ static int makePushPop(unsigned char *src, Bin_code *dst, int is_push)
         else
         {
             POP_R15;
-        }   
+        }
     }
 
     return curr_symb;
@@ -278,7 +281,7 @@ static int makePuPRAMReg(unsigned char *src, Bin_code *dst, int is_push)
     unsigned arg = *((unsigned *) src);
 
     MOV_R13_REG(arg);   // now we have r*x value in r13
-    
+
     if (is_push)
     {
         MOV_R15_R13RAM;
@@ -301,7 +304,7 @@ static int makePuPRAMReg2(unsigned char *src, Bin_code *dst, int is_push)
     unsigned reg1 = *((unsigned *) src);
     char     oper = *(src + sizeof(unsigned));
     unsigned reg2 = *((unsigned *) (src + sizeof(unsigned) + sizeof(char)));
-    
+
     MOV_R13_REG(reg1);
     MOV_R15_R13;
     MOV_R13_REG(reg2);
@@ -372,7 +375,7 @@ static int makePuPRAMRegNum(unsigned char *src, Bin_code *dst, int is_push, int 
 
     unsigned num  = 0;
     char     oper = 0;
-    unsigned reg  = 0; 
+    unsigned reg  = 0;
 
     // for construction PUSH/POP[num + reg]
     num  = *((unsigned *) src);
@@ -387,7 +390,7 @@ static int makePuPRAMRegNum(unsigned char *src, Bin_code *dst, int is_push, int 
     }
 
     // now we can do only PUSH/POP[reg + num], not PUSH/POP[num + reg]
-    MOV_R13_REG(reg);    
+    MOV_R13_REG(reg);
 
     // now mov r15, num
     FILL1BYTE(0x41);
@@ -413,11 +416,11 @@ static int makePuPRAMRegNum(unsigned char *src, Bin_code *dst, int is_push, int 
 }
 
 
-static int writeNumber(Bin_code *dst, unsigned num)
+static int writeNumber(Bin_code *dst, u_int64_t num, int size)
 {
     is_debug(if (!dst)  ERR(INVALID_PTR));
 
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < size; ++i)
     {
         dst->buffer[dst->length++] = num % 0x100;
         num /= 0x100;
@@ -465,9 +468,9 @@ static int restoreAllRegs(Bin_code *dst)
 }
 
 
-static int makeArifm(unsigned char *src, Bin_code *dst, int oper)
+static int makeArifm(Bin_code *dst, int oper)
 {
-    is_debug(if (!dst || !src)  ERR(INVALID_PTR));
+    is_debug(if (!dst)  ERR(INVALID_PTR));
 
     POP_R15;
     POP_R13;
@@ -475,4 +478,83 @@ static int makeArifm(unsigned char *src, Bin_code *dst, int oper)
     PUSH_R13;
 
     return 0;
+}
+
+
+static int makeOut(Bin_code *dst)
+{
+    is_debug(if (!dst)  ERR(INVALID_PTR));
+
+    // //preparing args
+    // FILL1BYTE(0x48);
+    // FILL1BYTE(0xBF);
+    // writeNumber(dst, (u_int64_t) &format, 8);
+    // fprintf(dst->asm_version, "mov rdi, offset format\n"); fflush(dst->asm_version); // mb not offset
+
+    // fprintf(stderr, "format addr = %p\n", &format);
+
+    // POP_R15;
+    // FILL1BYTE(0x4C);
+    // FILL1BYTE(0x89);
+    // FILL1BYTE(0xFE);
+    // fprintf(dst->asm_version, "mov rsi, r15\n"); fflush(dst->asm_version);
+
+    //PUSH_RAX;       // saving rax
+
+    FILL1BYTE(0x48);
+    FILL1BYTE(0x31);
+    FILL1BYTE(0xC0);
+    fprintf(dst->asm_version, "xor rax,rax\n"); fflush(dst->asm_version);
+
+    // int (*printF)(const char * __restrict__ format, ...);
+
+    // printF = printf;
+
+    //
+    POP_R15;
+    FILL1BYTE(0x4C);    // mov rdi, r15
+    FILL1BYTE(0x89);    // mov rdi, r15
+    FILL1BYTE(0xFF);    // mov rdi, r15
+    //
+
+    PUSH_RAX;
+
+    MOV_R13_NUMBER(dst, (u_int64_t) &wrapPrintf);
+
+    FILL1BYTE(0x4C);    // mov rax, r13
+    FILL1BYTE(0x89);    // mov rax, r13
+    FILL1BYTE(0xEB);    // mov rax, r13
+
+    FILL1BYTE(0xFF);    // call rax
+    FILL1BYTE(0xD3);    // call rax
+
+
+
+    // FILL1BYTE(0x41);    // call r13
+    // FILL1BYTE(0xFF);    // call r13
+    // FILL1BYTE(0xD5);    // call r13
+    //writeNumber(dst, (unsigned int) printF);
+
+    // u_int64_t num = (u_int64_t) &wrapPrintf;
+
+    fprintf(stderr, "Wprintf addr = %lx\n", (u_int64_t) &wrapPrintf);
+    fprintf(stderr, "Stdprintf addr = %lx\n", (u_int64_t) &printf);
+
+    //writeNumber(dst, (u_int64_t) &wrapPrintf, 4);
+    fprintf(dst->asm_version, "call printf\n"); fflush(dst->asm_version);
+
+    POP_RAX;        // restoring rax
+
+    //FILL1BYTE(0xC3);
+
+    return 0;
+}
+
+
+static int wrapPrintf(int arg)
+
+{
+    const char *__restrict__ string = "%d\n"; 
+
+    return printf(string, arg);
 }

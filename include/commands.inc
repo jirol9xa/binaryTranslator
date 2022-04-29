@@ -12,30 +12,31 @@ DEF_CMD(2, PUSH,
 })
 DEF_CMD(3, OUT, 
 {
-    
+    makeOut(dst);
+    ++i;
 })
 DEF_CMD(4, ADD, 
 {
     int oper = '+';
-    makeArifm(src_arr + i, dst, oper);
+    makeArifm(dst, oper);
     ++i;
 })
 DEF_CMD(5, SUB, 
 {
     int oper = '-';
-    makeArifm(src_arr + i, dst, oper);
+    makeArifm(dst, oper);
     ++i;
 })
 DEF_CMD(6, MUL,
 {
     int oper = '*';
-    makeArifm(src_arr + i, dst, oper);
+    makeArifm(dst, oper);
     ++i;
 })
 DEF_CMD(7, DIV, 
 {
     int oper = '/';
-    makeArifm(src_arr + i, dst, oper);
+    makeArifm(dst, oper);
     ++i;
 })
 DEF_CMD(8, POP, 
@@ -80,7 +81,8 @@ DEF_CMD(17, CALL,
 })
 DEF_CMD(18, RET,
 {
-
+    FILL1BYTE(0xC3);
+    ++i;
 })
 DEF_CMD(19, SQRT, 
 {

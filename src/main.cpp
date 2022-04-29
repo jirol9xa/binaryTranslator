@@ -6,6 +6,9 @@
 #include "reader.h"
 
 
+extern const char * __restrict__ format;
+
+
 int main(const int argc, const char *argv[])
 {
     if (argc < 2)
@@ -37,11 +40,6 @@ int main(const int argc, const char *argv[])
 
     fprintf(stderr, "buff length = %ld\n", binary.length);
 
-    // if (mprotect(binary.buffer, binary.length, PROT_WRITE))
-    // {
-    //     perror("Can't make mprotect\n");
-    //     exit(errno);
-    // }
     if (mprotect(binary.buffer, binary.length, PROT_EXEC | PROT_WRITE))
     {
         perror("Can't make mprotect\n");
@@ -52,7 +50,7 @@ int main(const int argc, const char *argv[])
 
     void (*Pup) (void);
     Pup = (void (*) (void)) binary.buffer;
-    fprintf(stderr, "pup = %p\n", Pup);
+    fprintf(stderr, "pup p= %p, pup d = %lx\n", Pup, (u_int64_t) Pup);
     PRINT_LINE;
     Pup();
 
@@ -60,5 +58,6 @@ int main(const int argc, const char *argv[])
 
     SourceDtor(&src);
     BinDtor(&binary);
+
     return 0;
 }
