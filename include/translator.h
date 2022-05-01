@@ -9,8 +9,8 @@
 
     struct Label
     {
-        long  src_ip;
-        char *dst_place;
+        long           src_ip;
+        unsigned char *dst_place;
     };
 
     struct Labels_arr

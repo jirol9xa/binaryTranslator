@@ -21,16 +21,22 @@ static int restoreAllRegs(Bin_code *dst);
 static int makePushPop     (unsigned char *src, Bin_code *dst, int is_push);
 static int makePuPRAMReg   (unsigned char *src, Bin_code *dst, int is_push);
 static int makePuPRAMReg2  (unsigned char *src, Bin_code *dst, int is_push);
-static int makePushRAMNum  (unsigned char *src, Bin_code *dst, int is_push);
+static int makePuPRAMNum  (unsigned char *src, Bin_code *dst, int is_push);
 static int makePuPRAMRegNum(unsigned char *src, Bin_code *dst, int is_push, int is_num_frst);
 static int makeArifm       (Bin_code *dst, int oper);
 static int makeOut         (Bin_code *dst);
 static int makeIn          (Bin_code *dst);
+static int makeJmp         (Bin_code *dst, int jmp_code);
 
 static int writeNumber(Bin_code *dst, u_int64_t num, int size = 4);
 
-static int wrapPrintf(int  arg);
-static int wrapScanf (u_int64_t *arg);
+static void wrapPrintf(int  arg);
+static int  wrapScanf (u_int64_t *arg);
+static void makeJump(int arg);
+static void makeCall(int arg);
+
+static int labelPushBack(Bin_code *dst, Sourse_code *src);
+
 
 // int SourceCtor(Sourse_code *src)
 // {
@@ -166,7 +172,7 @@ static int makePushPop(unsigned char *src, Bin_code *dst, int is_push)
                 break;
 
             case 2:                     // for PUSH[num + num]
-                makePushRAMNum(src + curr_symb, dst, is_push);
+                makePuPRAMNum(src + curr_symb, dst, is_push);
                 curr_symb += 2 * sizeof(int) + sizeof(char);
                 break;
 
@@ -338,7 +344,7 @@ static int makePuPRAMReg2(unsigned char *src, Bin_code *dst, int is_push)
 }
 
 
-static int makePushRAMNum(unsigned char *src, Bin_code *dst, int is_push)
+static int makePuPRAMNum(unsigned char *src, Bin_code *dst, int is_push)
 {
     is_debug(if (!src || !dst)  ERR(INVALID_PTR));
 
@@ -572,11 +578,11 @@ static int makeIn(Bin_code *dst)
 }
 
 
-static int wrapPrintf(int arg)
+static void wrapPrintf(int arg)
 {
     const char *__restrict__ string = "%d\n"; 
 
-    return printf(string, arg);
+    printf(string, arg);
 }
 
 
@@ -594,30 +600,216 @@ static int wrapScanf (u_int64_t *arg)
 }
 
 
-int labelPushBack(Bin_code *dst)
+static int labelPushBack(Bin_code *dst, Sourse_code *src)
 {
     is_debug(if (!dst)  ERR(INVALID_PTR));
 
-    Labels_arr arr = dst->labels;
-
-    if (arr.size + 1 >= arr.capacity)
+    if (dst->labels.size + 1 >= dst->labels.capacity)
     {
-        
+        void *temp_ptr = realloc(dst->labels.data, dst->labels.capacity * 2 * sizeof(Label));
+        if (!temp_ptr)  ERR(MEM_OVERFLOW);
+
+        dst->labels.data      = (Label *) temp_ptr;
+        dst->labels.capacity *= 2;
+    }
+
+    dst->labels.data[dst->labels.size].dst_place =  dst->buffer + dst->dst_ip;
+    dst->labels.data[dst->labels.size].src_ip    = *((int *) (src->buffer + dst->src_ip));
+
+    dst->labels.size++;
+
+    return 0;
+}
+
+
+static int getLabels(Sourse_code *src, Bin_code *dst)
+{
+    is_debug(if (!src || !dst)  ERR(INVALID_PTR));
+
+    unsigned char *src_arr = src->buffer;
+
+    dst->dst_ip = 10;
+
+    for (int i = 0; i < src->length;)
+    {
+        switch (src->buffer[i])
+        {
+            case 0: // IN
+                dst->src_ip++;
+                dst->dst_ip += 24;
+            case 2: // PUSH
+                if ((src_arr[dst->src_ip] & IS_REG) && (src_arr[dst->src_ip] & IS_RAM))
+                {
+                    dst->src_ip++;
+
+                    switch (src_arr[dst->src_ip++])
+                    {
+                        case (2 | IS_REG):
+                            dst->src_ip += 2 * sizeof(int) + sizeof(char);
+                            dst->dst_ip += 18;
+                            break;
+
+                        case (2 | IS_RAM | IS_REG):
+                            dst->src_ip += 2 * sizeof(int) + sizeof(char);
+                            dst->dst_ip += 18;
+                            break;
+                        
+                        case (1 | IS_REG):
+                            dst->src_ip += sizeof(int);
+                            dst->dst_ip += 9;
+                            break;
+                        
+                        case (2 | IS_RAM):
+                            dst->src_ip += 2 * sizeof(int) + sizeof(char);
+                            dst->dst_ip += 18;
+                            break;
+
+                        case (2):
+                            dst->src_ip += 2 * sizeof(int) + sizeof(char);
+                            dst->dst_ip += 12;
+                            break;
+                    }
+                }
+                else if (src_arr[dst->src_ip] & IS_REG) // for PUSH reg
+                {
+                    dst->src_ip += sizeof(unsigned) + sizeof(char);
+                    dst->dst_ip++;
+                }
+                else if (src_arr[dst->src_ip] & IS_RAM)
+                {
+                    dst->src_ip += sizeof(unsigned) + sizeof(char);
+                    dst->dst_ip += 12;
+                }
+                else    // for PUSH num
+                {
+                    dst->src_ip += sizeof(unsigned) + sizeof(char);
+                    dst->dst_ip += 5;
+                }
+                break;
+
+            case 3: // OUT
+                dst->src_ip++;
+                dst->dst_ip += 23;
+                break;
+
+            case 4: // ADD
+                dst->src_ip += sizeof(char);
+                dst->dst_ip += 9;
+                break;
+            
+            case 5: // SUB
+                dst->src_ip += sizeof(char);
+                dst->dst_ip += 9;
+                break;
+
+            case 6: // MUL
+                dst->src_ip += sizeof(char);
+                dst->dst_ip += 17;
+                break;
+
+            case 7: // DIV
+                dst->src_ip += sizeof(char);
+                dst->dst_ip += 22;
+                break;
+            case 8: // POP
+                if ((src_arr[dst->src_ip] & IS_REG) && (src_arr[dst->src_ip] & IS_RAM))
+                    {
+                        dst->src_ip++;
+
+                        switch (src_arr[dst->src_ip++])
+                        {
+                            case (2 | IS_REG):
+                                dst->src_ip += 2 * sizeof(int) + sizeof(char);
+                                dst->dst_ip += 18;
+                                break;
+
+                            case (2 | IS_RAM | IS_REG):
+                                dst->src_ip += 2 * sizeof(int) + sizeof(char);
+                                dst->dst_ip += 18;
+                                break;
+                            
+                            case (1 | IS_REG):
+                                dst->src_ip += sizeof(int);
+                                dst->dst_ip += 9;
+                                break;
+                            
+                            case (2 | IS_RAM):
+                                dst->src_ip += 2 * sizeof(int) + sizeof(char);
+                                dst->dst_ip += 18;
+                                break;
+
+                            case (2):
+                                dst->src_ip += 2 * sizeof(int) + sizeof(char);
+                                dst->dst_ip += 12;
+                                break;
+                        }
+                    }
+                else if (src_arr[dst->src_ip] & IS_REG) // for PUSH reg
+                {
+                    dst->src_ip += sizeof(unsigned) + sizeof(char);
+                    dst->dst_ip++;
+                }
+                else if (src_arr[dst->src_ip] & IS_RAM)
+                {
+                    dst->src_ip += sizeof(unsigned) + sizeof(char);
+                    dst->dst_ip += 12;
+                }
+                else    // for PUSH num
+                {
+                    dst->src_ip += sizeof(char);
+                    dst->dst_ip += 2;
+                }
+                break;
+
+            case 9: // JMP
+                dst->src_ip += sizeof(char);
+                dst->dst_ip += 2;
+
+                // Label *new_lab = (Label *) calloc(1, sizeof(Label));
+                // if (!new_lab)   ERR(MEM_OVERFLOW);
+
+                // new_lab->src_ip    = *((int *) (src_arr + dst->src_ip));
+                // new_lab->dst_place = dst->buffer + dst->dst_ip;
+
+                labelPushBack(dst, src);
+
+                dst->src_ip += sizeof(int);
+                dst->dst_ip += sizeof(u_int64_t) + 3;
+
+                break; 
+        }
     }
 
     return 0;
 }
 
 
-int makeJmp(Bin_code *dst, int jmp_code)
+static int makeJmp(Bin_code *dst, int jmp_code)
 {
     is_debug(if (!dst)  ERR(INVALID_PTR));
+
+    // working shit//////////////////////////////
+    //FILL1BYTE(0x49);                    // mov r13, &buff
+    //FILL1BYTE(0xBD);                    // mov r13, &buff
+    //dst->length += sizeof(u_int64_t);
+
+    FILL1BYTE(0x48);
+    FILL1BYTE(0xBF);
+
+    writeNumber(dst, (u_int64_t) ( (void (*) (void)) dst->buffer), 8);  // mov r13, &buff
+
+    fprintf(stderr, "&makeJump = %p\n",  &makeJump);
+
+    fprintf(stderr, "&buff = %p\n",  ( (void (*) (void)) dst->buffer));
+    /////////////////////////////////////////////
 
     switch (jmp_code)
     {
         case 9:
-            FILL1BYTE(0xEB);
-            fprintf(dst->asm_version, "jmp <addr>\n"); fflush(dst->asm_version);
+            FILL1BYTE(0x41);
+            FILL1BYTE(0xFF);
+            FILL1BYTE(0xE5);
+            fprintf(dst->asm_version, "jmp r13\n"); fflush(dst->asm_version);
             break;
         
         case 10:
@@ -651,7 +843,24 @@ int makeJmp(Bin_code *dst, int jmp_code)
             break;
     }
 
-    dst.
-
     return 0;
+}
+
+
+static void makeJump(int arg)
+{
+    __asm__ __volatile__
+    (
+        "popq   %%r15\n\t"          // deleting backAddr 
+        "movq   %%rdi, %%rip\n\t"
+    );
+}
+
+
+static void makeCall(int arg)
+{
+    __asm__ __volatile__
+    (
+        "movq   %%rdi, %%rip\n\t"
+    );
 }

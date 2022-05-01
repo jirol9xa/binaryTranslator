@@ -46,7 +46,8 @@ DEF_CMD(8, POP,
 })
 DEF_CMD(9, JMP,
 {
-
+    makeJmp(dst, 9);
+    i += sizeof(char) + sizeof(unsigned char);
 })
 DEF_CMD(10, MRK,
 {
