@@ -207,3 +207,14 @@
     is_debug(fprintf(dst->asm_version, "mov [r13], r15\n");     \
              fflush(dst->asm_version));                         \
 }
+
+#define CMP_R13_R15                                             \
+{                                                               \
+    POP_R15;                                                    \
+    POP_R13;                                                    \
+    FILL1BYTE(0x4D);                                            \
+    FILL1BYTE(0x39);                                            \
+    FILL1BYTE(0xFD);                                            \
+    is_debug(fprintf(dst->asm_version, "cmp r13, r15\n");       \
+             fflush(dst->asm_version));                         \
+}

@@ -10,7 +10,7 @@
     struct Label
     {
         int            src_ip;
-        unsigned char *dst_place;
+        int            dst_ip;
     };
 
     struct Labels_arr

@@ -46,42 +46,42 @@ DEF_CMD(8, POP,
 })
 DEF_CMD(9, JMP,
 {
-    makeJmp(src_arr, dst, 9, i);
-    i += sizeof(char) + sizeof(unsigned char);
+    makeJmp(src_arr + i, dst, 9, i);
+    i += sizeof(char) + sizeof(int);
 })
 DEF_CMD(10, MRK,
 {
-
+    ++i;
 })
 DEF_CMD(11, JA,
 {
-    makeJmp(src_arr, dst, 11, i);
-    i += sizeof(char) + sizeof(unsigned char);
+    makeJmp(src_arr + i, dst, 11, i);
+    i += sizeof(char) + sizeof(int);
 })
 DEF_CMD(12, JAE,
 {
-    makeJmp(src_arr, dst, 12, i);
-    i += sizeof(char) + sizeof(unsigned char);
+    makeJmp(src_arr + i, dst, 12, i);
+    i += sizeof(char) + sizeof(int);
 })
 DEF_CMD(13, JB,
 {
-    makeJmp(src_arr, dst, 13, i);
-    i += sizeof(char) + sizeof(unsigned char);
+    makeJmp(src_arr + i, dst, 13, i);
+    i += sizeof(char) + sizeof(int);
 })
 DEF_CMD(14, JBE,
 {
-    makeJmp(src_arr, dst, 14, i);
-    i += sizeof(char) + sizeof(unsigned char);
+    makeJmp(src_arr + i, dst, 14, i);
+    i += sizeof(char) + sizeof(int);
 })
 DEF_CMD(15, JE,
 {
-    makeJmp(src_arr, dst, 15, i);
-    i += sizeof(char) + sizeof(unsigned char);
+    makeJmp(src_arr + i, dst, 15, i);
+    i += sizeof(char) + sizeof(int);
 })
 DEF_CMD(16, JNE,
 {
-    makeJmp(src_arr, dst, 16, i);
-    i += sizeof(char) + sizeof(unsigned char);
+    makeJmp(src_arr + i, dst, 16, i);
+    i += sizeof(char) + sizeof(int);
 })
 DEF_CMD(17, CALL,
 {

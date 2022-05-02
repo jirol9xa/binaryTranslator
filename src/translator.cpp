@@ -32,10 +32,11 @@ static int writeNumber(Bin_code *dst, u_int64_t num, int size = 4);
 
 static void wrapPrintf(int  arg);
 static int  wrapScanf (u_int64_t *arg);
-static void makeJump();
-static void makeCall();
 
-static int labelPushBack(Bin_code *dst, long src_ip, unsigned char *dst_place);
+static int labelPushBack(Bin_code *dst, long src_ip);
+static int getLabels    (Bin_code *dst, unsigned char *src_arr);
+
+int LabComp(const void *first, const void *second);
 
 // int SourceCtor(Sourse_code *src)
 // {
@@ -113,7 +114,6 @@ int translation(Sourse_code *src, Bin_code *dst)
 
     for (long i = 0; i < src->length; )
     {
-        fprintf(stderr, "cmd code = %x\n", src_arr[i]);
         switch (src_arr[i] & (IS_REG - 1))  // for getting only cmd code (without any info about regs and ram)
         {
             #define DEF_CMD(number, name, DSLcode)          \
@@ -125,12 +125,19 @@ int translation(Sourse_code *src, Bin_code *dst)
             #undef DEF_CMD
         }
 
-        printf("src-length = %ld, i = %ld\n", src->length, i);
     }
 
     restoreAllRegs(dst);
 
     FILL1BYTE(0xC3); fprintf(dst->asm_version, "ret"); fflush(dst->asm_version);
+
+    Label *lab = dst->labels.data;
+    for (int i = 0; i < dst->labels.size; i++)
+    {
+        fprintf(stderr, "src_ip = %d, dst_ip = %d\n", lab[i].src_ip, lab[i].dst_ip);
+    }
+
+    getLabels(dst, src->buffer);
 
     return 0;
 }
@@ -141,8 +148,6 @@ static int makePushPop(unsigned char *src, Bin_code *dst, int is_push)
     is_debug(if (!src || !dst)  ERR(INVALID_PTR))
 
     int curr_symb = 0;
-
-    PRINT_LINE;
 
     if ((src[curr_symb] & IS_REG) && (src[curr_symb] & IS_RAM))   //for PUSH[reg + num], PUSH[reg + reg], PUSH[reg]
     {
@@ -277,7 +282,6 @@ static int makePushPop(unsigned char *src, Bin_code *dst, int is_push)
             writeNumber(dst, arg);
 
             fprintf(dst->asm_version, "push %d\n", arg);
-            PRINT_LINE;
             fflush(dst->asm_version);
         }
         else
@@ -599,7 +603,7 @@ static int wrapScanf (u_int64_t *arg)
 }
 
 
-static int labelPushBack(Bin_code *dst, long src_ip, unsigned char *dst_place)
+static int labelPushBack(Bin_code *dst, long src_ip)
 {
     is_debug(if (!dst)  ERR(INVALID_PTR));
 
@@ -612,8 +616,8 @@ static int labelPushBack(Bin_code *dst, long src_ip, unsigned char *dst_place)
         dst->labels.capacity *= 2;
     }
 
-    dst->labels.data[dst->labels.size].dst_place = dst_place;
-    dst->labels.data[dst->labels.size].src_ip    = src_ip;
+    dst->labels.data[dst->labels.size].dst_ip = dst->length;
+    dst->labels.data[dst->labels.size].src_ip = src_ip;
 
     dst->labels.size++;
 
@@ -621,150 +625,198 @@ static int labelPushBack(Bin_code *dst, long src_ip, unsigned char *dst_place)
 }
 
 
-static int getLabels(Sourse_code *src, Bin_code *dst)
+static int getLabels(Bin_code *dst, unsigned char *src_arr)
 {
-    is_debug(if (!src || !dst)  ERR(INVALID_PTR));
+    is_debug(if (!src_arr || !dst)  ERR(INVALID_PTR));
 
-    unsigned char *src_arr = src->buffer;
+    //dst->src_ip = 0;
+    ///*dst->*/dst_ip = 10;   // saving regs in stack
 
-    dst->dst_ip = 10;   // saving regs in stack
+    int       src_ip = 0;
+    u_int64_t dst_ip = 10;    // saving regs in stack
 
-    for (int i = 0; i < src->length;)
+    // in this gunc we've already filled array with labels, so
+    // we can sort that
+
+    qsort(dst->labels.data, dst->labels.size, sizeof(Label), LabComp);
+
+    // now we have sorted arr, so we need make search 1 time for 'size' segment
+
+    for (int lab_num = 0; lab_num < dst->labels.size; ++lab_num)
     {
-        switch (src->buffer[i])
+        PRINT_LINE;
+        for (; src_ip < dst->labels.data[lab_num].src_ip;)
         {
-            case 0: // IN
-                dst->src_ip++;
-                dst->dst_ip += 24;
-            case 2: // PUSH
-                if ((src_arr[dst->src_ip] & IS_REG) && (src_arr[dst->src_ip] & IS_RAM))
-                {
-                    dst->src_ip++;
-
-                    switch (src_arr[dst->src_ip++])
+            fprintf(stderr, "src_ip = %d, lab_ip = %d\n", src_ip, dst->labels.data[lab_num].src_ip);
+            switch (src_arr[src_ip])
+            {
+                case 0: // IN
+                    /*dst->*/src_ip++;
+                    /*dst->*/dst_ip += 24;
+                case 1:
+                    src_ip++;
+                    dst_ip++;
+                case 2: // PUSH
+                    PRINT_LINE;
+                    if ((src_arr[/*dst->*/src_ip] & IS_REG) && (src_arr[/*dst->*/src_ip] & IS_RAM))
                     {
-                        case (2 | IS_REG):
-                            dst->src_ip += 2 * sizeof(int) + sizeof(char);
-                            dst->dst_ip += 18;
-                            break;
+                        /*dst->*/src_ip++;
 
-                        case (2 | IS_RAM | IS_REG):
-                            dst->src_ip += 2 * sizeof(int) + sizeof(char);
-                            dst->dst_ip += 18;
-                            break;
-                        
-                        case (1 | IS_REG):
-                            dst->src_ip += sizeof(int);
-                            dst->dst_ip += 9;
-                            break;
-                        
-                        case (2 | IS_RAM):
-                            dst->src_ip += 2 * sizeof(int) + sizeof(char);
-                            dst->dst_ip += 18;
-                            break;
-
-                        case (2):
-                            dst->src_ip += 2 * sizeof(int) + sizeof(char);
-                            dst->dst_ip += 12;
-                            break;
-                    }
-                }
-                else if (src_arr[dst->src_ip] & IS_REG) // for PUSH reg
-                {
-                    dst->src_ip += sizeof(unsigned) + sizeof(char);
-                    dst->dst_ip++;
-                }
-                else if (src_arr[dst->src_ip] & IS_RAM)
-                {
-                    dst->src_ip += sizeof(unsigned) + sizeof(char);
-                    dst->dst_ip += 12;
-                }
-                else    // for PUSH num
-                {
-                    dst->src_ip += sizeof(unsigned) + sizeof(char);
-                    dst->dst_ip += 5;
-                }
-                break;
-
-            case 3: // OUT
-                dst->src_ip++;
-                dst->dst_ip += 23;
-                break;
-
-            case 4: // ADD
-                dst->src_ip += sizeof(char);
-                dst->dst_ip += 9;
-                break;
-            
-            case 5: // SUB
-                dst->src_ip += sizeof(char);
-                dst->dst_ip += 9;
-                break;
-
-            case 6: // MUL
-                dst->src_ip += sizeof(char);
-                dst->dst_ip += 17;
-                break;
-
-            case 7: // DIV
-                dst->src_ip += sizeof(char);
-                dst->dst_ip += 22;
-                break;
-            case 8: // POP
-                if ((src_arr[dst->src_ip] & IS_REG) && (src_arr[dst->src_ip] & IS_RAM))
-                    {
-                        dst->src_ip++;
-
-                        switch (src_arr[dst->src_ip++])
+                        switch (src_arr[/*dst->*/src_ip++])
                         {
                             case (2 | IS_REG):
-                                dst->src_ip += 2 * sizeof(int) + sizeof(char);
-                                dst->dst_ip += 18;
+                                /*dst->*/src_ip += 2 * sizeof(int) + sizeof(char);
+                                /*dst->*/dst_ip += 18;
                                 break;
 
                             case (2 | IS_RAM | IS_REG):
-                                dst->src_ip += 2 * sizeof(int) + sizeof(char);
-                                dst->dst_ip += 18;
+                                /*dst->*/src_ip += 2 * sizeof(int) + sizeof(char);
+                                /*dst->*/dst_ip += 18;
                                 break;
-                            
+
                             case (1 | IS_REG):
-                                dst->src_ip += sizeof(int);
-                                dst->dst_ip += 9;
+                                /*dst->*/src_ip += sizeof(int);
+                                /*dst->*/dst_ip += 9;
                                 break;
-                            
+
                             case (2 | IS_RAM):
-                                dst->src_ip += 2 * sizeof(int) + sizeof(char);
-                                dst->dst_ip += 18;
+                                /*dst->*/src_ip += 2 * sizeof(int) + sizeof(char);
+                                /*dst->*/dst_ip += 18;
                                 break;
 
                             case (2):
-                                dst->src_ip += 2 * sizeof(int) + sizeof(char);
-                                dst->dst_ip += 12;
+                                /*dst->*/src_ip += 2 * sizeof(int) + sizeof(char);
+                                /*dst->*/dst_ip += 12;
                                 break;
                         }
                     }
-                else if (src_arr[dst->src_ip] & IS_REG) // for PUSH reg
-                {
-                    dst->src_ip += sizeof(unsigned) + sizeof(char);
-                    dst->dst_ip++;
-                }
-                else if (src_arr[dst->src_ip] & IS_RAM)
-                {
-                    dst->src_ip += sizeof(unsigned) + sizeof(char);
-                    dst->dst_ip += 12;
-                }
-                else    // for PUSH num
-                {
-                    dst->src_ip += sizeof(char);
-                    dst->dst_ip += 2;
-                }
-                break;
+                    else if (src_arr[/*dst->*/src_ip] & IS_REG) // for PUSH reg
+                    {
+                        /*dst->*/src_ip += sizeof(unsigned) + sizeof(char);
+                        /*dst->*/dst_ip++;
+                    }
+                    else if (src_arr[/*dst->*/src_ip] & IS_RAM)
+                    {
+                        /*dst->*/src_ip += sizeof(unsigned) + sizeof(char);
+                        /*dst->*/dst_ip += 12;
+                    }
+                    else    // for PUSH num
+                    {
+                        /*dst->*/src_ip += sizeof(unsigned) + sizeof(char);
+                        /*dst->*/dst_ip += 5;
+                    }
+                    break;
 
-            case 9: case 11: case 12: case 13: case 14: case 15: case 16: // JMP
-                dst->src_ip += sizeof(char) + sizeof(unsigned);
-                dst->dst_ip += 14;
+                case 3: // OUT
+                    /*dst->*/src_ip++;
+                    /*dst->*/dst_ip += 23;
+                    break;
 
-                break; 
+                case 4: // ADD
+                    /*dst->*/src_ip += sizeof(char);
+                    /*dst->*/dst_ip += 9;
+                    break;
+
+                case 5: // SUB
+                    /*dst->*/src_ip += sizeof(char);
+                    /*dst->*/dst_ip += 9;
+                    break;
+
+                case 6: // MUL
+                    /*dst->*/src_ip += sizeof(char);
+                    /*dst->*/dst_ip += 17;
+                    break;
+
+                case 7: // DIV
+                    /*dst->*/src_ip += sizeof(char);
+                    /*dst->*/dst_ip += 22;
+                    break;
+                case 8: // POP
+                    if ((src_arr[/*dst->*/src_ip] & IS_REG) && (src_arr[/*dst->*/src_ip] & IS_RAM))
+                        {
+                            /*dst->*/src_ip++;
+
+                            switch (src_arr[/*dst->*/src_ip++])
+                            {
+                                case (2 | IS_REG):
+                                    /*dst->*/src_ip += 2 * sizeof(int) + sizeof(char);
+                                    /*dst->*/dst_ip += 18;
+                                    break;
+
+                                case (2 | IS_RAM | IS_REG):
+                                    /*dst->*/src_ip += 2 * sizeof(int) + sizeof(char);
+                                    /*dst->*/dst_ip += 18;
+                                    break;
+
+                                case (1 | IS_REG):
+                                    /*dst->*/src_ip += sizeof(int);
+                                    /*dst->*/dst_ip += 9;
+                                    break;
+
+                                case (2 | IS_RAM):
+                                    /*dst->*/src_ip += 2 * sizeof(int) + sizeof(char);
+                                    /*dst->*/dst_ip += 18;
+                                    break;
+
+                                case (2):
+                                    /*dst->*/src_ip += 2 * sizeof(int) + sizeof(char);
+                                    /*dst->*/dst_ip += 12;
+                                    break;
+                            }
+                        }
+                    else if (src_arr[/*dst->*/src_ip] & IS_REG) // for PUSH reg
+                    {
+                        /*dst->*/src_ip += sizeof(unsigned) + sizeof(char);
+                        /*dst->*/dst_ip++;
+                    }
+                    else if (src_arr[/*dst->*/src_ip] & IS_RAM)
+                    {
+                        /*dst->*/src_ip += sizeof(unsigned) + sizeof(char);
+                        /*dst->*/dst_ip += 12;
+                    }
+                    else    // for PUSH num
+                    {
+                        /*dst->*/src_ip += sizeof(char);
+                        /*dst->*/dst_ip += 2;
+                    }
+                    break;
+
+                case 9:// JMP
+                    /*dst->*/src_ip += sizeof(char) + sizeof(unsigned);
+                    /*dst->*/dst_ip += sizeof(char) + sizeof(int);
+
+                    break; 
+
+                case 10:
+                    src_ip++;
+                    break;
+
+                case 11: case 12: case 13: case 14: case 15: case 16:
+                    PRINT_LINE;
+                    src_ip += sizeof(char) + sizeof(unsigned);
+                    dst_ip += 13;//sizeof(char) * 2 + sizeof(int) + sizeof(char) * 7;
+                    break;
+                default:
+                    fprintf(stderr, "Unknown oper %d\n", src_arr[src_ip]);
+                    exit(1);
+            }
+        }
+
+        //*((int *) (dst->buffer + dst->labels.data[lab_num].dst_ip)) = 
+        //    (int) ( (int) dst_ip - dst->labels.data[lab_num].dst_ip - sizeof(char) - sizeof(int));
+        //
+        //fprintf(stderr, "jmp offset = %0x\n", *((int *) (dst->buffer + dst->labels.data[lab_num].dst_ip)));
+        
+        int offset = (int) ( (int) dst_ip - dst->labels.data[lab_num].dst_ip - sizeof(char) - sizeof(int) - (sizeof(char) * 8) * !(dst->buffer[dst->labels.data[lab_num].dst_ip - 2] == 0xE9));
+
+        unsigned offset_uns = (unsigned) offset;
+
+        fprintf(stderr, "offset = %d, %x\n", offset, offset_uns);
+
+        for (int j = 0; j < sizeof(int); ++j)
+        {
+            dst->buffer[j + dst->labels.data[lab_num].dst_ip] = offset_uns % 0x100;
+            offset_uns /= 0x100;
         }
     }
 
@@ -776,15 +828,6 @@ static int makeJmp(unsigned char *src, Bin_code *dst, int jmp_code, int curr_sym
 {
     is_debug(if (!dst)  ERR(INVALID_PTR));
 
-    FILL1BYTE(0x48);    // mov rdi, ...
-    FILL1BYTE(0xBF);    // mov rdi, ...
-
-    labelPushBack(dst, *((int *)(src + 1)), dst->buffer + dst->length);
-
-    dst->length += sizeof(u_int64_t);   // then we need fill this empty space
-
-    //writeNumber(dst, (u_int64_t) ( (void (*) (void)) dst->buffer), 8);  // mov rdi, &buff
-
     switch (jmp_code)
     {
         case 9:
@@ -793,61 +836,63 @@ static int makeJmp(unsigned char *src, Bin_code *dst, int jmp_code, int curr_sym
             break;
         
         case 11:
+            CMP_R13_R15;
             FILL1BYTE(0x0F);
             FILL1BYTE(0x87);
             fprintf(dst->asm_version, "ja  <addr>\n"); fflush(dst->asm_version);
             break;
 
         case 12:
+            CMP_R13_R15;
             FILL1BYTE(0x0F);
             FILL1BYTE(0x83);
             fprintf(dst->asm_version, "jae <addr>\n"); fflush(dst->asm_version);
             break;
 
         case 13:
+            CMP_R13_R15;
             FILL1BYTE(0x0F);
             FILL1BYTE(0x82);
             fprintf(dst->asm_version, "jb  <addr>\n"); fflush(dst->asm_version);
             break;
 
         case 14:
+            CMP_R13_R15;
             FILL1BYTE(0x0F);
             FILL1BYTE(0x86);
             fprintf(dst->asm_version, "jbe <addr>\n"); fflush(dst->asm_version);
             break;
 
         case 15:
+            CMP_R13_R15;
             FILL1BYTE(0x0F);
             FILL1BYTE(0x84);
             fprintf(dst->asm_version, "je  <addr>\n"); fflush(dst->asm_version);
             break;
         
         case 16:
+            CMP_R13_R15;
             FILL1BYTE(0x0F);
             FILL1BYTE(0x85);
             fprintf(dst->asm_version, "jne <addr>\n"); fflush(dst->asm_version);
             break;
     }
 
-    writeNumber(dst, (u_int64_t) &makeJump);
+    labelPushBack(dst, *((int *)(src + 1)));
+    dst->length += sizeof(int);
+    
+    //writeNumber(dst, (u_int64_t) &makeJump);
 
     return 0;
 }
 
 
-static void makeJump()
+int LabComp(const void *first, const void *second)
 {
-    __asm__ __volatile__
-    (
-        "jmpq   *%rdi\n\t"
-    );
+    is_debug(if (!first || !second) ERR(INVALID_PTR));
+
+    Label *First  = (Label *) first;
+    Label *Second = (Label *) second;
+
+    return First->src_ip > Second->src_ip;
 }
-
-
-// static void makeCall(int arg)
-// {
-//     __asm__ __volatile__
-//     (
-//         "jmpq   *%rax\n\t"
-//     );
-// }
