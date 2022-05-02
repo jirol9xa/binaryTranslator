@@ -21,22 +21,21 @@ static int restoreAllRegs(Bin_code *dst);
 static int makePushPop     (unsigned char *src, Bin_code *dst, int is_push);
 static int makePuPRAMReg   (unsigned char *src, Bin_code *dst, int is_push);
 static int makePuPRAMReg2  (unsigned char *src, Bin_code *dst, int is_push);
-static int makePuPRAMNum  (unsigned char *src, Bin_code *dst, int is_push);
-static int makePuPRAMRegNum(unsigned char *src, Bin_code *dst, int is_push, int is_num_frst);
+static int makePuPRAMNum   (unsigned char *src, Bin_code *dst, int is_push);
+static int makePuPRAMRegNum(unsigned char *src, Bin_code *dst, int is_push,  int is_num_frst);
+static int makeJmp         (unsigned char *src, Bin_code *dst, int jmp_code, int curr_symb);
 static int makeArifm       (Bin_code *dst, int oper);
 static int makeOut         (Bin_code *dst);
 static int makeIn          (Bin_code *dst);
-static int makeJmp         (Bin_code *dst, int jmp_code);
 
 static int writeNumber(Bin_code *dst, u_int64_t num, int size = 4);
 
 static void wrapPrintf(int  arg);
 static int  wrapScanf (u_int64_t *arg);
-static void makeJump(int arg);
-static void makeCall(int arg);
+static void makeJump();
+static void makeCall();
 
-static int labelPushBack(Bin_code *dst, Sourse_code *src);
-
+static int labelPushBack(Bin_code *dst, long src_ip, unsigned char *dst_place);
 
 // int SourceCtor(Sourse_code *src)
 // {
@@ -126,7 +125,7 @@ int translation(Sourse_code *src, Bin_code *dst)
             #undef DEF_CMD
         }
 
-        printf("src-length = %d, i = %d\n", src->length, i);
+        printf("src-length = %ld, i = %ld\n", src->length, i);
     }
 
     restoreAllRegs(dst);
@@ -600,7 +599,7 @@ static int wrapScanf (u_int64_t *arg)
 }
 
 
-static int labelPushBack(Bin_code *dst, Sourse_code *src)
+static int labelPushBack(Bin_code *dst, long src_ip, unsigned char *dst_place)
 {
     is_debug(if (!dst)  ERR(INVALID_PTR));
 
@@ -613,8 +612,8 @@ static int labelPushBack(Bin_code *dst, Sourse_code *src)
         dst->labels.capacity *= 2;
     }
 
-    dst->labels.data[dst->labels.size].dst_place =  dst->buffer + dst->dst_ip;
-    dst->labels.data[dst->labels.size].src_ip    = *((int *) (src->buffer + dst->src_ip));
+    dst->labels.data[dst->labels.size].dst_place = dst_place;
+    dst->labels.data[dst->labels.size].src_ip    = src_ip;
 
     dst->labels.size++;
 
@@ -628,7 +627,7 @@ static int getLabels(Sourse_code *src, Bin_code *dst)
 
     unsigned char *src_arr = src->buffer;
 
-    dst->dst_ip = 10;
+    dst->dst_ip = 10;   // saving regs in stack
 
     for (int i = 0; i < src->length;)
     {
@@ -761,20 +760,9 @@ static int getLabels(Sourse_code *src, Bin_code *dst)
                 }
                 break;
 
-            case 9: // JMP
-                dst->src_ip += sizeof(char);
-                dst->dst_ip += 2;
-
-                // Label *new_lab = (Label *) calloc(1, sizeof(Label));
-                // if (!new_lab)   ERR(MEM_OVERFLOW);
-
-                // new_lab->src_ip    = *((int *) (src_arr + dst->src_ip));
-                // new_lab->dst_place = dst->buffer + dst->dst_ip;
-
-                labelPushBack(dst, src);
-
-                dst->src_ip += sizeof(int);
-                dst->dst_ip += sizeof(u_int64_t) + 3;
+            case 9: case 11: case 12: case 13: case 14: case 15: case 16: // JMP
+                dst->src_ip += sizeof(char) + sizeof(unsigned);
+                dst->dst_ip += 14;
 
                 break; 
         }
@@ -784,83 +772,82 @@ static int getLabels(Sourse_code *src, Bin_code *dst)
 }
 
 
-static int makeJmp(Bin_code *dst, int jmp_code)
+static int makeJmp(unsigned char *src, Bin_code *dst, int jmp_code, int curr_symb)
 {
     is_debug(if (!dst)  ERR(INVALID_PTR));
 
-    // working shit//////////////////////////////
-    //FILL1BYTE(0x49);                    // mov r13, &buff
-    //FILL1BYTE(0xBD);                    // mov r13, &buff
-    //dst->length += sizeof(u_int64_t);
+    FILL1BYTE(0x48);    // mov rdi, ...
+    FILL1BYTE(0xBF);    // mov rdi, ...
 
-    FILL1BYTE(0x48);
-    FILL1BYTE(0xBF);
+    labelPushBack(dst, *((int *)(src + 1)), dst->buffer + dst->length);
 
-    writeNumber(dst, (u_int64_t) ( (void (*) (void)) dst->buffer), 8);  // mov r13, &buff
+    dst->length += sizeof(u_int64_t);   // then we need fill this empty space
 
-    fprintf(stderr, "&makeJump = %p\n",  &makeJump);
-
-    fprintf(stderr, "&buff = %p\n",  ( (void (*) (void)) dst->buffer));
-    /////////////////////////////////////////////
+    //writeNumber(dst, (u_int64_t) ( (void (*) (void)) dst->buffer), 8);  // mov rdi, &buff
 
     switch (jmp_code)
     {
         case 9:
-            FILL1BYTE(0x41);
-            FILL1BYTE(0xFF);
-            FILL1BYTE(0xE5);
-            fprintf(dst->asm_version, "jmp r13\n"); fflush(dst->asm_version);
+            FILL1BYTE(0xE9);
+            fprintf(dst->asm_version, "jmp <addr>\n"); fflush(dst->asm_version);
             break;
         
-        case 10:
-            FILL1BYTE(0x77);
+        case 11:
+            FILL1BYTE(0x0F);
+            FILL1BYTE(0x87);
             fprintf(dst->asm_version, "ja  <addr>\n"); fflush(dst->asm_version);
             break;
 
-        case 11:
-            FILL1BYTE(0x73);
+        case 12:
+            FILL1BYTE(0x0F);
+            FILL1BYTE(0x83);
             fprintf(dst->asm_version, "jae <addr>\n"); fflush(dst->asm_version);
             break;
 
-        case 12:
-            FILL1BYTE(0x72);
+        case 13:
+            FILL1BYTE(0x0F);
+            FILL1BYTE(0x82);
             fprintf(dst->asm_version, "jb  <addr>\n"); fflush(dst->asm_version);
             break;
 
-        case 13:
-            FILL1BYTE(0x76);
+        case 14:
+            FILL1BYTE(0x0F);
+            FILL1BYTE(0x86);
             fprintf(dst->asm_version, "jbe <addr>\n"); fflush(dst->asm_version);
             break;
 
-        case 14:
-            FILL1BYTE(0x74);
+        case 15:
+            FILL1BYTE(0x0F);
+            FILL1BYTE(0x84);
             fprintf(dst->asm_version, "je  <addr>\n"); fflush(dst->asm_version);
             break;
         
-        case 15:
-            FILL1BYTE(0x75);
+        case 16:
+            FILL1BYTE(0x0F);
+            FILL1BYTE(0x85);
             fprintf(dst->asm_version, "jne <addr>\n"); fflush(dst->asm_version);
             break;
     }
+
+    writeNumber(dst, (u_int64_t) &makeJump);
 
     return 0;
 }
 
 
-static void makeJump(int arg)
+static void makeJump()
 {
     __asm__ __volatile__
     (
-        "popq   %%r15\n\t"          // deleting backAddr 
-        "movq   %%rdi, %%rip\n\t"
+        "jmpq   *%rdi\n\t"
     );
 }
 
 
-static void makeCall(int arg)
-{
-    __asm__ __volatile__
-    (
-        "movq   %%rdi, %%rip\n\t"
-    );
-}
+// static void makeCall(int arg)
+// {
+//     __asm__ __volatile__
+//     (
+//         "jmpq   *%rax\n\t"
+//     );
+// }

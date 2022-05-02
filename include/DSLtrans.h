@@ -194,7 +194,7 @@
     FILL1BYTE(0x41);                                            \
     FILL1BYTE(0xBD);                                            \
     writeNumber(dst, num);                                      \
-    is_debug(fprintf(dst->asm_version, "mov r13, %d\n", num);   \
+    is_debug(fprintf(dst->asm_version, "mov r13, %lu\n", num);  \
              fflush(dst->asm_version));                         \
 }
 

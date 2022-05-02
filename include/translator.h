@@ -9,7 +9,7 @@
 
     struct Label
     {
-        long           src_ip;
+        int            src_ip;
         unsigned char *dst_place;
     };
 
@@ -26,7 +26,7 @@
         long           length;
         long           capacity;
         FILE          *asm_version;
-        long           src_ip;
+        int            src_ip;
         long           dst_ip;
         Labels_arr     labels;
     };
