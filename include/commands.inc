@@ -85,7 +85,8 @@ DEF_CMD(16, JNE,
 })
 DEF_CMD(17, CALL,
 {
-
+    makeCall(src_arr + i, dst);
+    i += sizeof(char) + sizeof(int);
 })
 DEF_CMD(18, RET,
 {

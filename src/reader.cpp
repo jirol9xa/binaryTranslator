@@ -19,7 +19,7 @@ int reader(FILE *src_file, Sourse_code *src)
 
     fprintf(stderr, "length = %ld\n", length);
 
-    src->buffer = (unsigned char *) calloc(length, sizeof(unsigned char));
+    src->buffer = (unsigned char *) calloc(length + 1, sizeof(unsigned char));
     is_debug(if (!src)  ERR(MEM_OVERFLOW))
 
     long rl_length = fread(src->buffer, sizeof(unsigned char), length, src_file);
