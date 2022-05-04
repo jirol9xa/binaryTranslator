@@ -108,6 +108,8 @@ int BinDtor(Bin_code *dst)
     free(dst->buffer);
     fclose(dst->asm_version);
 
+    free(dst->labels.data);
+
     return 0;
 }
 
@@ -514,12 +516,20 @@ static int makeOut(Bin_code *dst)
     is_debug(if (!dst)  ERR(INVALID_PTR));
 
     POP_R15;
-    FILL1BYTE(0x4C);    // mov rdi, r15
-    FILL1BYTE(0x89);    // mov rdi, r15
-    FILL1BYTE(0xFF);    // mov rdi, r15
-    fprintf(dst->asm_version, "mov rdi, r15\n"); fflush(dst->asm_version);
 
     PUSH_RAX;
+
+    FILL1BYTE(0x55); fprintf(dst->asm_version, "push rbp\n"); fflush(dst->asm_version);
+
+    FILL1BYTE(0x48);
+    FILL1BYTE(0x89);
+    FILL1BYTE(0xE5);
+    fprintf(dst->asm_version, "mov rbp, rsp\n"); fflush(dst->asm_version);
+
+    FILL1BYTE(0x4C);
+    FILL1BYTE(0x89);
+    FILL1BYTE(0xFF);
+    fprintf(dst->asm_version, "mov rdi, r15\n"); fflush(dst->asm_version);
 
     FILL1BYTE(0x48);
     FILL1BYTE(0x31);
@@ -529,16 +539,14 @@ static int makeOut(Bin_code *dst)
 
     MOV_R13_NUMBER(dst, (u_int64_t) &wrapPrintf);
 
-    FILL1BYTE(0x4C);
-    FILL1BYTE(0x89);
-    FILL1BYTE(0xEB);
-    fprintf(dst->asm_version, "mov rax, r13\n"); fflush(dst->asm_version);
-
+    FILL1BYTE(0x41);
     FILL1BYTE(0xFF);
-    FILL1BYTE(0xD3);
-    fprintf(dst->asm_version, "call rax\n"); fflush(dst->asm_version);
+    FILL1BYTE(0xD5);
+    fprintf(dst->asm_version, "call r13\n"); fflush(dst->asm_version);
 
-    POP_RAX;        // restoring rax
+    FILL1BYTE(0x5D); fprintf(dst->asm_version, "pop rbp\n"); fflush(dst->asm_version);
+
+    POP_RAX;
 
     return 0;
 }
@@ -555,7 +563,10 @@ static int makeIn(Bin_code *dst)
     // FILL1BYTE(0x89);    // mov r15, rax
     // FILL1BYTE(0xC7);    // mov r15, rax
 
-    saveAllRegs(dst);
+    FILL1BYTE(0x50); fprintf(dst->asm_version, "push rax\n"); fflush(dst->asm_version);
+    FILL1BYTE(0x53); fprintf(dst->asm_version, "push rbx\n"); fflush(dst->asm_version);
+    FILL1BYTE(0x51); fprintf(dst->asm_version, "push rcx\n"); fflush(dst->asm_version);
+    FILL1BYTE(0x52); fprintf(dst->asm_version, "push rdx\n"); fflush(dst->asm_version);
 
     FILL1BYTE(0x48);
     FILL1BYTE(0x31);
@@ -572,31 +583,35 @@ static int makeIn(Bin_code *dst)
     //FILL1BYTE(0x68);
     //writeNumber(dst, 5433);
 
+    FILL1BYTE(0x55); fprintf(dst->asm_version, "push rbp\n"); fflush(dst->asm_version);
+
+    FILL1BYTE(0x48);
+    FILL1BYTE(0x89);
+    FILL1BYTE(0xE5);
+    fprintf(dst->asm_version, "mov rpb, rsp\n"); fflush(dst->asm_version);
+
     FILL1BYTE(0x41);
     FILL1BYTE(0xFF);
     FILL1BYTE(0xD5);
     fprintf(dst->asm_version, "call r13\n"); fflush(dst->asm_version);
 
-    POP_R15;
-    FILL1BYTE(0x49);    // mov r15, rax
-    FILL1BYTE(0x89);    // mov r15, rax
-    FILL1BYTE(0xC7);    // mov r15, rax
+    FILL1BYTE(0x5D); fprintf(dst->asm_version, "pop rbp\n"); fflush(dst->asm_version);
 
-    POP_R13;
-    FILL1BYTE(0x5F); fprintf(dst->asm_version, "pop rdi\n"); fflush(dst->asm_version);
-    FILL1BYTE(0x5E); fprintf(dst->asm_version, "pop rsi\n"); fflush(dst->asm_version);
+    FILL1BYTE(0x49);
+    FILL1BYTE(0x89);
+    FILL1BYTE(0xC7);
+    fprintf(dst->asm_version, "mov r15, rax\n"); fflush(dst->asm_version);
+
     FILL1BYTE(0x5A); fprintf(dst->asm_version, "pop rdx\n"); fflush(dst->asm_version);
     FILL1BYTE(0x59); fprintf(dst->asm_version, "pop rcx\n"); fflush(dst->asm_version);
     FILL1BYTE(0x5B); fprintf(dst->asm_version, "pop rbx\n"); fflush(dst->asm_version);
     FILL1BYTE(0x58); fprintf(dst->asm_version, "pop rax\n"); fflush(dst->asm_version);
 
     PUSH_R15;
-    // FILL1BYTE(0x4C);    // resoting rax
-    // FILL1BYTE(0x89);    // resoting rax
-    // FILL1BYTE(0xF8);    // resoting rax
-    // fprintf(dst->asm_version, "mov rax, r15\n"); fflush(dst->asm_version);
-
-    //restoreAllRegs(dst);
+    //FILL1BYTE(0x4C);    // resoting rax
+    //FILL1BYTE(0x89);    // resoting rax
+    //FILL1BYTE(0xF8);    // resoting rax
+    //fprintf(dst->asm_version, "mov rax, r15\n"); fflush(dst->asm_version);
 
     return 0;
 }
@@ -611,8 +626,7 @@ static void wrapPrintf(int arg)
 static int wrapWrapScanf()
 {
     int value = 0;
-
-    const char * __restrict__ format = "%d";
+    char *format = "%d";
 
     //printf("format = %p, &value = %p\n", format, &value);
 
@@ -681,8 +695,8 @@ static int getLabels(Bin_code *dst, unsigned char *src_arr)
             {
                 case 0: // IN
                     /*dst->*/src_ip++;
-                    /*dst->*/dst_ip += 24;
-                    last_offset = 24;
+                    /*dst->*/dst_ip += 30;
+                    last_offset = 30;
                     break;
 
                 case 1: // HLT

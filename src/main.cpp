@@ -47,6 +47,12 @@ int main(const int argc, const char *argv[])
 
     PRINT_LINE;
 
+    char *arr = nullptr;
+
+    PRINT_LINE;
+
+    PRINT_LINE;
+
     void (*Pup) (void);
     Pup = (void (*) (void)) binary.buffer;
     fprintf(stderr, "Pup addr = %lx\n", (u_int64_t) Pup);

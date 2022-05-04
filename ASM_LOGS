@@ -6,7 +6,10 @@ push rsi
 push rdi
 push r13
 push r15
-push 5
+xor rax,rax
+mov r13, 4221179
+call r13
+push r15
 pop rax
 call <addr>
 jmp <addr>
@@ -36,12 +39,11 @@ push r13
 pop rax
 push rax
 pop r15
-mov rdi, r15
 push rax
+mov rdi, r15
 xor rax,rax
-mov r13, 4221171
-mov rax, r13
-call rax
+mov r13, 4221018
+call r13
 pop rax
 pop r15
 pop r13
