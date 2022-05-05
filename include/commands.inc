@@ -95,5 +95,6 @@ DEF_CMD(18, RET,
 })
 DEF_CMD(19, SQRT, 
 {
-
+    makeSqrt(dst);
+    ++i;
 })
