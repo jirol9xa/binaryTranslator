@@ -46,6 +46,23 @@
              fflush(dst->asm_version));                     \
 }
 
+
+#define PUSH_RDX                                            \
+{                                                           \
+    FILL1BYTE(0x52);                                        \
+    is_debug(fprintf(dst->asm_version, "push rdx\n");       \
+             fflush(dst->asm_version));                     \
+}
+
+
+#define POP_RDX                                             \
+{                                                           \
+    FILL1BYTE(0x5A);                                        \
+    is_debug(fprintf(dst->asm_version, "pop rdx\n");        \
+             fflush(dst->asm_version));                     \
+}
+
+
 #define MOV_R15_R13                                         \
 {                                                           \
     FILL1BYTE(0x4D);                                        \
@@ -133,6 +150,7 @@
                                                                                                 \
     case '*':                                                                                   \
         PUSH_RAX;                                                                               \
+        PUSH_RDX; \
         FILL1BYTE(0x4C);                                                                        \
         FILL1BYTE(0x89);                                                                        \
         FILL1BYTE(0xE8);                                                                        \
@@ -140,35 +158,34 @@
                  fflush(dst->asm_version));                                                     \
         FILL1BYTE(0x49);                                                                        \
         FILL1BYTE(0xF7);                                                                        \
-        FILL1BYTE(0xE7);                                                                        \
-                is_debug(fprintf(dst->asm_version, "mul r15\n");                                \
+        FILL1BYTE(0xEF);                                                                        \
+                is_debug(fprintf(dst->asm_version, "imul r15\n");                                \
                  fflush(dst->asm_version));                                                     \
         MOV_R13_RAX;                                                                            \
+        POP_RDX;    \
         POP_RAX;                                                                                \
         break;                                                                                  \
                                                                                                 \
     case '/':                                                                                   \
         PUSH_RAX;                                                                               \
+        PUSH_RDX;                                                                           \
         FILL1BYTE(0x4C);                                                                        \
         FILL1BYTE(0x89);                                                                        \
         FILL1BYTE(0xE8);                                                                        \
         is_debug(fprintf(dst->asm_version, "mov rax, r13\n");                                   \
                  fflush(dst->asm_version));                                                     \
-        FILL1BYTE(0x52);                                                                        \
         FILL1BYTE(0x48);                                                                        \
         FILL1BYTE(0x31);                                                                        \
-        FILL1BYTE(0xD2);                                                                        \
-        is_debug(fprintf(dst->asm_version, "push rdx\nxor rdx, rdx");                           \
+        FILL1BYTE(0xD2); \
+                is_debug(fprintf(dst->asm_version, "xor rdx, rdx\n");                           \
                  fflush(dst->asm_version));                                                     \
         FILL1BYTE(0x49);                                                                        \
         FILL1BYTE(0xF7);                                                                        \
-        FILL1BYTE(0xF7);                                                                        \
-                is_debug(fprintf(dst->asm_version, "div r15\n");                                \
+        FILL1BYTE(0xFF);                                                                        \
+                is_debug(fprintf(dst->asm_version, "idiv r15\n");                                \
                  fflush(dst->asm_version));                                                     \
         MOV_R13_RAX;                                                                            \
-        FILL1BYTE(0x5A);                                                                        \
-        is_debug(fprintf(dst->asm_version, "pop rdx\n");                                        \
-                 fflush(dst->asm_version));                                                     \
+        POP_RDX; \
         POP_RAX;                                                                                \
         break;                                                                                  \
                                                                                                 \
