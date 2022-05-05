@@ -11,7 +11,7 @@ push rbx
 push rcx
 push rdx
 xor rax,rax
-mov r13, 4221842
+mov r13, 4221893
 push rbp
 mov rpb, rsp
 call r13
@@ -29,7 +29,7 @@ push rbx
 push rcx
 push rdx
 xor rax,rax
-mov r13, 4228161
+mov r13, 4228212
 push rbp
 mov rpb, rsp
 call r13
@@ -41,14 +41,20 @@ pop rbx
 pop rax
 push r15
 pop r15
-push rax
-push rbp
-mov rbp, rsp
 mov rdi, r15
+push rax
+push rbx
+push rcx
+push rdx
 xor rax,rax
-mov r13, 4221802
+mov r13, 4221853
+push rbp
+mov rpb, rsp
 call r13
 pop rbp
+pop rdx
+pop rcx
+pop rbx
 pop rax
 pop r15
 pop r13

@@ -29,6 +29,7 @@ static int makePuPRAMRegNum(unsigned char *src, Bin_code *dst, int is_push,  int
 static int makeJmp         (unsigned char *src, Bin_code *dst, int jmp_code, int curr_symb);
 static int makeCall        (unsigned char *src, Bin_code *dst);
 static int makeArifm       (Bin_code *dst, int oper);
+static int makeWrapCall    (Bin_code *dst, bool is_arg, u_int64_t wrap_addr, bool is_ret);
 static int makeOut         (Bin_code *dst);
 static int makeIn          (Bin_code *dst);
 static int makeSqrt        (Bin_code *dst);
@@ -37,6 +38,7 @@ static int writeNumber(Bin_code *dst, u_int64_t num, int size = 4);
 
 static void wrapPrintf(int  arg);
 static int  wrapScanf ();
+static int  wrapSqrt  (int arg);
 
 static int labelPushBack(Bin_code *dst, long src_ip);
 static int getLabels    (Bin_code *dst, unsigned char *src_arr);
@@ -1064,6 +1066,65 @@ static int makeSqrt(Bin_code *dst)
     FILL1BYTE(0x58); fprintf(dst->asm_version, "pop rax\n"); fflush(dst->asm_version);
 
     PUSH_R15;
+
+    return 0;
+}
+
+
+static int makeWrapCall(Bin_code *dst, bool is_arg, u_int64_t wrap_addr, bool is_ret)
+{
+    is_debug(if (!dst)  ERR(INVALID_PTR));
+
+    if (is_arg)
+    {
+        POP_R15;
+        FILL1BYTE(0x4C);
+        FILL1BYTE(0x89);
+        FILL1BYTE(0xFF);
+        fprintf(dst->asm_version, "mov rdi, r15\n"); fflush(dst->asm_version);
+    }
+
+    FILL1BYTE(0x50); fprintf(dst->asm_version, "push rax\n"); fflush(dst->asm_version);
+    FILL1BYTE(0x53); fprintf(dst->asm_version, "push rbx\n"); fflush(dst->asm_version);
+    FILL1BYTE(0x51); fprintf(dst->asm_version, "push rcx\n"); fflush(dst->asm_version);
+    FILL1BYTE(0x52); fprintf(dst->asm_version, "push rdx\n"); fflush(dst->asm_version);
+
+    FILL1BYTE(0x48);
+    FILL1BYTE(0x31);
+    FILL1BYTE(0xC0);
+    fprintf(dst->asm_version, "xor rax,rax\n"); fflush(dst->asm_version);
+
+    MOV_R13_NUMBER(dst, wrap_addr);
+
+    FILL1BYTE(0x55); fprintf(dst->asm_version, "push rbp\n"); fflush(dst->asm_version);
+
+    FILL1BYTE(0x48);
+    FILL1BYTE(0x89);
+    FILL1BYTE(0xE5);
+    fprintf(dst->asm_version, "mov rpb, rsp\n"); fflush(dst->asm_version);
+
+    FILL1BYTE(0x41);
+    FILL1BYTE(0xFF);
+    FILL1BYTE(0xD5);
+    fprintf(dst->asm_version, "call r13\n"); fflush(dst->asm_version);
+
+    FILL1BYTE(0x5D); fprintf(dst->asm_version, "pop rbp\n"); fflush(dst->asm_version);
+
+    if (is_ret)
+    {
+        FILL1BYTE(0x49);
+        FILL1BYTE(0x89);
+        FILL1BYTE(0xC7);
+        fprintf(dst->asm_version, "mov r15, rax\n"); fflush(dst->asm_version);
+        // for saving ret value
+    }
+
+    FILL1BYTE(0x5A); fprintf(dst->asm_version, "pop rdx\n"); fflush(dst->asm_version);
+    FILL1BYTE(0x59); fprintf(dst->asm_version, "pop rcx\n"); fflush(dst->asm_version);
+    FILL1BYTE(0x5B); fprintf(dst->asm_version, "pop rbx\n"); fflush(dst->asm_version);
+    FILL1BYTE(0x58); fprintf(dst->asm_version, "pop rax\n"); fflush(dst->asm_version);
+
+    if (is_ret)     PUSH_R15;
 
     return 0;
 }

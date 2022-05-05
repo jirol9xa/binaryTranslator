@@ -1,6 +1,6 @@
 DEF_CMD(0, IN, 
 {
-    makeIn(dst);
+    makeWrapCall(dst, 0, (u_int64_t) &wrapScanf, 1);
     ++i;
 })
 DEF_CMD(1, HLT, 
@@ -13,7 +13,7 @@ DEF_CMD(2, PUSH,
 })
 DEF_CMD(3, OUT, 
 {
-    makeOut(dst);
+    makeWrapCall(dst, 1, (u_int64_t) &wrapPrintf, 0);
     ++i;
 })
 DEF_CMD(4, ADD, 
@@ -95,6 +95,6 @@ DEF_CMD(18, RET,
 })
 DEF_CMD(19, SQRT, 
 {
-    makeSqrt(dst);
+    makeWrapCall(dst, 1, (u_int64_t) &wrapSqrt, 1);
     ++i;
 })
