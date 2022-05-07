@@ -108,6 +108,17 @@ The total execution time of the program was reduced by 246 times compared to the
 
 ## Final performance comparison
 
+Let's look at all the tests performed and compare the correctly measured data for each of the architectures.
+
+</br>
+
+### My cpu
+
+|Logs -O0   |no Logs -O0|no Logs -O3|
+|:---------:|:---------:|:---------:|
+|57382624559|324304975  |82080908   |
+|           |<span style="color: #98fb98"> 177 </span> |699|
+
 So, counting factorial 5 on an x86_64 architecture processor works 
 
     536 times 
