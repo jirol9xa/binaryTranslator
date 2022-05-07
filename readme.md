@@ -40,7 +40,9 @@ We will compare directly the execution of the binary code execution on my proces
 
 Next, several stages of testing the program of my processor will be shown, which will show how much all these points are needed.
 
-    As a test program, it will use recursive factorial calculation for the number 5. Without reading from the keyboard and without displaying the result on the screen. Thus, we will use arithmetic operations, function calls, and jumps.
+-------------------------------------------------
+As a test program, it will use recursive factorial calculation for the number 5. Without reading from the keyboard and without displaying the result on the screen. Thus, we will use arithmetic operations, function calls, and jumps.
+
 -------------------------------------------------
     The performance evaluation will be performed by the kcachegrind program.
 
