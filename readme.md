@@ -117,7 +117,7 @@ Let's look at all the tests performed and compare the correctly measured data fo
 |Logs -O0   |no Logs -O0|no Logs -O3|
 |:---------:|:---------:|:---------:|
 |57382624559|324304975  |82080908   |
-|           |<span style="color: #98fb98"> 177 </span> |699|
+|times faster, than Logs -O0|<span style="background-color: #98fb98"> 177 </span> |<span style="color: #98fb98"> 699 </span>|
 
 So, counting factorial 5 on an x86_64 architecture processor works 
 
