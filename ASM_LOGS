@@ -6,57 +6,8 @@ push rsi
 push rdi
 push r13
 push r15
-push rax
-push rbx
-push rcx
-push rdx
-xor rax,rax
-mov r13, 4219564
-push rbp
-mov rpb, rsp
-call r13
-pop rbp
-mov r15, rax
-pop rdx
-pop rcx
-pop rbx
+push 5
 pop rax
-push r15
-pop rax
-push rax
-push rbx
-push rcx
-push rdx
-xor rax,rax
-mov r13, 4219564
-push rbp
-mov rpb, rsp
-call r13
-pop rbp
-mov r15, rax
-pop rdx
-pop rcx
-pop rbx
-pop rax
-push r15
-pop rbx
-push rax
-push rbx
-push rcx
-push rdx
-xor rax,rax
-mov r13, 4219564
-push rbp
-mov rpb, rsp
-call r13
-pop rbp
-mov r15, rax
-pop rdx
-pop rcx
-pop rbx
-pop rax
-push r15
-pop rcx
 push rax
 push 0
 pop r15
@@ -64,269 +15,33 @@ pop r13
 cmp r13, r15
 je  <addr>
 call <addr>
-push rdx
-push 0
-pop r15
-pop r13
-cmp r13, r15
-jb  <addr>
-push 2
-pop r15
-mov rdi, r15
-push rax
-push rbx
-push rcx
-push rdx
-xor rax,rax
-mov r13, 4219524
-push rbp
-mov rpb, rsp
-call r13
-pop rbp
-pop rdx
-pop rcx
-pop rbx
-pop rax
-push rbx
-push -1
-pop r15
-pop r13
-push rax
-push rdx
-mov rax, r13
-imul r15
-pop rdx
-pop rax
-push r13
-pop rbx
-push rbx
-push rdx
-pop r15
-pop r13
-add r13, r15
-push r13
-push rax
-pop r15
-pop r13
-push rax
-push rdx
-mov rax, r13
-xor rdx, rdx
-idiv r15
-pop rdx
-pop rax
-push r13
-push 2
-pop r15
-pop r13
-push rax
-push rdx
-mov rax, r13
-xor rdx, rdx
-idiv r15
-pop rdx
-pop rax
-push r13
-pop r15
-mov rdi, r15
-push rax
-push rbx
-push rcx
-push rdx
-xor rax,rax
-mov r13, 4219524
-push rbp
-mov rpb, rsp
-call r13
-pop rbp
-pop rdx
-pop rcx
-pop rbx
-pop rax
-push rbx
-push rdx
-pop r15
-pop r13
-sub r13, r15
-push r13
-push rax
-pop r15
-pop r13
-push rax
-push rdx
-mov rax, r13
-xor rdx, rdx
-idiv r15
-pop rdx
-pop rax
-push r13
-push 2
-pop r15
-pop r13
-push rax
-push rdx
-mov rax, r13
-xor rdx, rdx
-idiv r15
-pop rdx
-pop rax
-push r13
-pop r15
-mov rdi, r15
-push rax
-push rbx
-push rcx
-push rdx
-xor rax,rax
-mov r13, 4219524
-push rbp
-mov rpb, rsp
-call r13
-pop rbp
-pop rdx
-pop rcx
-pop rbx
-pop rax
 jmp <addr>
+push rax
 push 1
 pop r15
-mov rdi, r15
-push rax
-push rbx
-push rcx
-push rdx
-xor rax,rax
-mov r13, 4219524
-push rbp
-mov rpb, rsp
-call r13
-pop rbp
-pop rdx
-pop rcx
-pop rbx
-pop rax
-push -1
-push rcx
-pop r15
 pop r13
+cmp r13, r15
+je  <addr>
 push rax
-push rdx
-mov rax, r13
-imul r15
-pop rdx
-pop rax
-push r13
-push rbx
-pop r15
-pop r13
 push rax
-push rdx
-mov rax, r13
-xor rdx, rdx
-idiv r15
-pop rdx
-pop rax
-push r13
-pop r15
-mov rdi, r15
-push rax
-push rbx
-push rcx
-push rdx
-xor rax,rax
-mov r13, 4219524
-push rbp
-mov rpb, rsp
-call r13
-pop rbp
-pop rdx
-pop rcx
-pop rbx
-pop rax
-jmp <addr>
-push rbx
-push rbx
-pop r15
-pop r13
-push rax
-push rdx
-mov rax, r13
-imul r15
-pop rdx
-pop rax
-push r13
-push 4
-push rax
-push rcx
-pop r15
-pop r13
-push rax
-push rdx
-mov rax, r13
-imul r15
-pop rdx
-pop rax
-push r13
-pop r15
-pop r13
-push rax
-push rdx
-mov rax, r13
-imul r15
-pop rdx
-pop rax
-push r13
+push 1
 pop r15
 pop r13
 sub r13, r15
 push r13
-pop rdx
-push rdx
-push 0
+pop rax
+call <addr>
+push rax
 pop r15
 pop r13
-cmp r13, r15
-jb  <addr>
-push rdx
-pop r15
-mov rdi, r15
 push rax
-push rbx
-push rcx
 push rdx
-xor rax,rax
-mov r13, 4225501
-push rbp
-mov rpb, rsp
-call r13
-pop rbp
-mov r15, rax
+mov rax, r13
+imul r15
 pop rdx
-pop rcx
-pop rbx
 pop rax
-push r15
-pop rdx
-push 0
-pop r15
-mov rdi, r15
-push rax
-push rbx
-push rcx
-push rdx
-xor rax,rax
-mov r13, 4219524
-push rbp
-mov rpb, rsp
-call r13
-pop rbp
-pop rdx
-pop rcx
-pop rbx
+push r13
 pop rax
-push -1
-pop rdx
-jmp <addr>
 pop r15
 pop r13
 pop rdi

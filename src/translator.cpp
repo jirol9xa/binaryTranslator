@@ -67,7 +67,6 @@ int BinCtor(Bin_code *dst, long buff_length)
 
     if (posix_memalign((void **) &(temp_ptr), PAGESIZE, buff_length * 16 + 64))
     {
-        PRINT_LINE;
         fprintf(stderr, "!!! Posix error !!!\n");
         exit(errno);
     }
@@ -195,7 +194,6 @@ static int makePushPop(unsigned char *src, Bin_code *dst, int is_push)
 
             default:
                 fprintf(stderr, "!!!!!INVALID MODE OF PUSH!!!!!!\n");
-                PRINT_LINE;
                 exit(1);
         }
     }
@@ -271,8 +269,6 @@ static int makePushPop(unsigned char *src, Bin_code *dst, int is_push)
     {
         curr_symb++;
 
-        PRINT_LINE;
-
         unsigned arg = *((unsigned *) src + curr_symb);
         curr_symb   += sizeof(unsigned);
 
@@ -302,8 +298,6 @@ static int makePushPop(unsigned char *src, Bin_code *dst, int is_push)
             POP_R15;
         }
     }
-
-    fprintf(stderr, "offset in makePushPop = %d\n", dst->length - old_length);
 
     return curr_symb;
 }
@@ -514,8 +508,6 @@ static int makeArifm(Bin_code *dst, int oper)
     CALC_R13_R15(oper);
     PUSH_R13;
 
-    fprintf(stderr, "offset in makeArifm = %d\n", dst->length - old_length);
-
     return 0;
 }
 
@@ -607,7 +599,6 @@ static int getLabels(Bin_code *dst, unsigned char *src_arr)
 
         if (dst_ip > lab_dst_ip || cmd_code == 0xE8)
         {
-            PRINT_LINE;
             offset = (int) ((int) dst_ip - lab_dst_ip - sizeof(int));
             fprintf(stderr, "offset frwrd = %d\n", offset);
         }
@@ -689,8 +680,6 @@ static int makeJmp(unsigned char *src, Bin_code *dst, int jmp_code, int curr_sym
     labelPushBack(dst, *((int *)(src + 1)));
     dst->length += sizeof(int);
     
-    fprintf(stderr, "offset in makeJmp = %d\n", dst->length - old_length);
-
     return 0;
 }
 
@@ -718,8 +707,6 @@ static int makeCall(unsigned char *src, Bin_code *dst)
     dst->length += sizeof(int);
 
     fprintf(dst->asm_version, "call <addr>\n");
-
-    fprintf(stderr, "offset in makeCall = %d\n", dst->length - old_length);
 
     return 0;
 }
@@ -787,8 +774,6 @@ static int makeWrapCall(Bin_code *dst, bool is_arg, u_int64_t wrap_addr, bool is
     FILL1BYTE(0x58); fprintf(dst->asm_version, "pop rax\n"); fflush(dst->asm_version);
 
     if (is_ret)     PUSH_R15;
-
-    fprintf(stderr, "offset in makeWrap = %d\n", dst->length - old_length);
 
     return 0;
 }
