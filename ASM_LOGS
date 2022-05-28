@@ -6,32 +6,137 @@ push rsi
 push rdi
 push r13
 push r15
-push 5
-pop rax
-push rax
 push 0
-pop r15
-pop r13
-cmp r13, r15
-je  <addr>
-call <addr>
+push 0
+push 0
+pop rax
+pop rcx
+pop rdx
 jmp <addr>
-push rax
+mov r13, rbx
+mov r15, 0
+add r13, r15
+mov r15, [r13]
+push r15
 push 1
 pop r15
 pop r13
 cmp r13, r15
 je  <addr>
-push rax
-push rax
+jmp <addr>
+push 1
+pop rcx
+jmp <addr>
+jmp <addr>
+mov r13, rbx
+mov r15, 0
+add r13, r15
+mov r15, [r13]
+push r15
 push 1
 pop r15
 pop r13
 sub r13, r15
 push r13
+mov r13, rbx
+mov r15, r13
+mov r13, rax
+add r13, r15
+pop r15
+mov [r13], r15
+push rax
+push 1
+pop r15
+pop r13
+add r13, r15
+push r13
+pop rax
+push rax
+mov r13, rbx
+mov r15, r13
+mov r13, rax
+add r13, r15
+pop r15
+mov [r13], r15
+push rax
+push 1
+pop r15
+pop r13
+add r13, r15
+push r13
+pop rax
+push rbx
+pop rdx
+push rax
+push rbx
+pop r15
+pop r13
+add r13, r15
+push r13
+pop rbx
+push 0
+pop rax
+mov r13, rdx
+mov r15, 1
+add r13, r15
+mov r15, [r13]
+push r15
+mov r13, rbx
+mov r15, r13
+mov r13, rax
+add r13, r15
+pop r15
+mov [r13], r15
+push rax
+push 2
+pop r15
+pop r13
+add r13, r15
+push r13
 pop rax
 call <addr>
+push rcx
+mov r13, rbx
+mov r15, 1
+sub r13, r15
+mov r15, [r13]
+push r15
+pop rax
+push rbx
 push rax
+pop r15
+pop r13
+sub r13, r15
+push r13
+push 1
+pop r15
+pop r13
+sub r13, r15
+push r13
+pop rbx
+mov r13, rbx
+mov r15, r13
+mov r13, rax
+add r13, r15
+pop r15
+mov [r13], r15
+push rax
+push 1
+pop r15
+pop r13
+add r13, r15
+push r13
+pop rax
+mov r13, rbx
+mov r15, 2
+add r13, r15
+mov r15, [r13]
+push r15
+mov r13, rbx
+mov r15, 0
+add r13, r15
+mov r15, [r13]
+push r15
 pop r15
 pop r13
 push rax
@@ -41,7 +146,101 @@ imul r15
 pop rdx
 pop rax
 push r13
+pop rcx
+push rax
+mov r13, rbx
+mov r15, r13
+mov r13, rax
+add r13, r15
+pop r15
+mov [r13], r15
+push rax
+push 1
+pop r15
+pop r13
+add r13, r15
+push r13
 pop rax
+push rbx
+pop rdx
+push rax
+push rbx
+pop r15
+pop r13
+add r13, r15
+push r13
+pop rbx
+push 0
+pop rax
+push 5
+mov r13, rbx
+mov r15, r13
+mov r13, rax
+add r13, r15
+pop r15
+mov [r13], r15
+push rax
+push 2
+pop r15
+pop r13
+add r13, r15
+push r13
+pop rax
+call <addr>
+push rcx
+mov r13, rbx
+mov r15, 1
+sub r13, r15
+mov r15, [r13]
+push r15
+pop rax
+push rbx
+push rax
+pop r15
+pop r13
+sub r13, r15
+push r13
+push 1
+pop r15
+pop r13
+sub r13, r15
+push r13
+pop rbx
+mov r13, rbx
+mov r15, r13
+mov r13, rax
+add r13, r15
+pop r15
+mov [r13], r15
+push rax
+push 1
+pop r15
+pop r13
+add r13, r15
+push r13
+pop rax
+mov r13, rbx
+mov r15, 0
+add r13, r15
+mov r15, [r13]
+push r15
+pop r15
+mov rdi, r15
+push rax
+push rbx
+push rcx
+push rdx
+xor rax,rax
+mov r13, 4219510
+push rbp
+mov rpb, rsp
+call r13
+pop rbp
+pop rdx
+pop rcx
+pop rbx
+pop rax
+pop r15
 pop r15
 pop r13
 pop rdi

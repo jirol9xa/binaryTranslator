@@ -42,12 +42,6 @@ static int getLabels    (Bin_code *dst, unsigned char *src_arr);
 
 int LabComp(const void *first, const void *second);
 
-// int SourceCtor(Sourse_code *src)
-// {
-//     is_debug(if (!src)  ERR(INVALID_PTR))
-
-//     return 0;
-// }
 
 int SourceDtor(Sourse_code *src)
 {
@@ -80,8 +74,6 @@ int BinCtor(Bin_code *dst, long buff_length)
     {
         buff[i] = 0xC3;
     }
-
-    //mprotect(dst->buffer, buff_length, PROT_EXEC);
 
     dst->asm_version = fopen("ASM_LOGS", "w");
     dst->capacity    = buff_length;
@@ -473,6 +465,9 @@ static int saveAllRegs(Bin_code *dst)
     FILL1BYTE(0x57); fprintf(Asm, "push rdi\n"); fflush(Asm);
     PUSH_R13;
     PUSH_R15;
+    FILL1BYTE(0x48);    // mov rbx, rsp
+    FILL1BYTE(0x89);    // mov rbx, rsp
+    FILL1BYTE(0xE3);    // mov rbx, rsp
 
     return 0;
 }
@@ -558,14 +553,8 @@ static int getLabels(Bin_code *dst, unsigned char *src_arr)
 {
     is_debug(if (!src_arr || !dst)  ERR(INVALID_PTR));
 
-    //dst->src_ip = 0;
-    //dst_ip = 10;   // saving regs in stack
-
     int src_ip       = 0;
-    u_int64_t dst_ip = 10;    // saving regs in stack
-
-    // in this gunc we've already filled array with labels, so
-    // we can sort that
+    u_int64_t dst_ip = 10 + 3;    // saving regs in stack;;;; 3 is for testing lang only
 
     qsort(dst->labels.data, dst->labels.size, sizeof(Label), LabComp);
 
@@ -584,10 +573,6 @@ static int getLabels(Bin_code *dst, unsigned char *src_arr)
 
                 #include "commands.inc"
                 #undef DEF_CMD
-                //default:
-                //    fprintf(stderr, "Unknown oper %d\n", src_arr[src_ip]);
-                //    PRINT_LINE;
-                //    exit(1);
             }
         }
         
